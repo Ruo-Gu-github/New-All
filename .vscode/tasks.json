@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "hiscan-analyzer build:native:ogl",
+			"type": "shell",
+			"command": "cd /d \"d:\\2025-09-25 新系列\\hiscan-analyzer\" & npm.cmd run build:native:ogl",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "hiscan-analyzer build:native:ogl (cmd)",
+			"type": "shell",
+			"command": "cd /d \"d:\\2025-09-25 新系列\\hiscan-analyzer\" & npm.cmd run build:native:ogl",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "vcpkg install (manifest)",
+			"type": "shell",
+			"command": "\"d:\\2025-09-25 新系列\\build\\vcpkg\\vcpkg.exe\" install --x-manifest-root=\"d:\\2025-09-25 新系列\\build\" --triplet x64-windows",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "vcpkg install (manifest, cd first)",
+			"type": "shell",
+			"command": "cd /d \"d:\\2025-09-25 新系列\\build\\vcpkg\" & vcpkg.exe install --x-manifest-root=\"d:\\2025-09-25 新系列\\build\" --triplet x64-windows",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

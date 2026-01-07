@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>传递函数</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+      .titlebar-close:hover {
+        background: #eee;
+      }
+
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .help {
+        font-size: 12px;
+      }
+
+      .table-wrap {
+        flex: 1;
+        overflow: auto;
+        border: 1px solid #ebeef5;
+        border-radius: 6px;
+        padding: 8px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 90px 140px 1fr 80px;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed #ebeef5;
+      }
+      .row:last-child {
+        border-bottom: none;
+      }
+      .label {
+        color: #606266;
+        font-size: 13px;
+      }
+
+      .dialog-footer {
+        padding-top: 12px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">传递函数</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <div class="toolbar">
+        <div class="help">value: 0~1；color/alpha: 0~1</div>
+        <button id="add-btn" class="el-button el-button--small">
+          新增控制点
+        </button>
+      </div>
+
+      <div class="table-wrap" id="rows"></div>
+
+      <div class="dialog-footer">
+        <button id="cancel-btn" class="el-button">取消</button>
+        <button id="apply-btn" class="el-button el-button--primary">
+          应用
+        </button>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref } = Vue;
+
+      function clamp01(x) {
+        x = +x;
+        if (Number.isNaN(x)) return 0;
+        return Math.max(0, Math.min(1, x));
+      }
+
+      function hexToRgb01(hex) {
+        if (!hex || typeof hex !== "string") return { r: 1, g: 1, b: 1 };
+        const h = hex.replace("#", "");
+        if (h.length !== 6) return { r: 1, g: 1, b: 1 };
+        const r = parseInt(h.slice(0, 2), 16) / 255;
+        const g = parseInt(h.slice(2, 4), 16) / 255;
+        const b = parseInt(h.slice(4, 6), 16) / 255;
+        return { r, g, b };
+      }
+
+      function rgb01ToHex(r, g, b) {
+        const toHex = (v) => {
+          const n = Math.round(clamp01(v) * 255);
+          return n.toString(16).padStart(2, "0");
+        };
+        return "#" + toHex(r) + toHex(g) + toHex(b);
+      }
+
+      const app = createApp({
+        setup() {
+          const points = ref([
+            { value: 0.0, r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+            { value: 1.0, r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+          ]);
+
+          const applyInitData = (p) => {
+            if (!p || typeof p !== "object") return;
+            if (Array.isArray(p.points) && p.points.length > 0) {
+              const sanitized = [];
+              for (const cp of p.points) {
+                if (!cp || typeof cp !== "object") continue;
+                const value = clamp01(cp.value);
+                const r = clamp01(cp.r);
+                const g = clamp01(cp.g);
+                const b = clamp01(cp.b);
+                const a = clamp01(cp.a);
+                sanitized.push({ value, r, g, b, a });
+              }
+              if (sanitized.length > 0) points.value = sanitized;
+            }
+          };
+
+          try {
+            if (window.electronAPI?.on) {
+              window.electronAPI.on("dialog:init-data", (params) => {
+                applyInitData(params);
+                console.log("[TransferFunction Dialog] init-data:", params);
+              });
+            }
+            window.electronAPI?.send?.("dialog:ready");
+          } catch (e) {
+            console.warn(
+              "[TransferFunction Dialog] init-data hookup failed:",
+              e
+            );
+          }
+
+          const cancel = () =>
+            window.electronAPI.send("dialog:close", { action: "cancel" });
+          const apply = () => {
+            const out = points.value
+              .map((p) => ({
+                value: clamp01(p.value),
+                r: clamp01(p.r),
+                g: clamp01(p.g),
+                b: clamp01(p.b),
+                a: clamp01(p.a),
+              }))
+              .sort((a, b) => a.value - b.value);
+
+            window.electronAPI.send("dialog:close", {
+              action: "apply",
+              data: { points: out },
+            });
+          };
+
+          const addPoint = () => {
+            points.value = [
+              ...points.value,
+              { value: 0.5, r: 1.0, g: 1.0, b: 1.0, a: 0.25 },
+            ];
+          };
+
+          const removePoint = (idx) => {
+            const arr = points.value.slice();
+            arr.splice(idx, 1);
+            if (arr.length === 0) {
+              arr.push({ value: 0.0, r: 0.0, g: 0.0, b: 0.0, a: 0.0 });
+              arr.push({ value: 1.0, r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
+            }
+            points.value = arr;
+          };
+
+          setTimeout(() => {
+            document
+              .getElementById("close-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("cancel-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("apply-btn")
+              .addEventListener("click", apply);
+            document
+              .getElementById("add-btn")
+              .addEventListener("click", addPoint);
+
+            createApp({
+              template: `
+                <div>
+                  <div class="row" v-for="(p, idx) in points" :key="idx">
+                    <div class="label">value</div>
+                    <el-input-number v-model="p.value" :min="0" :max="1" :step="0.01" controls-position="right" size="small" />
+
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <el-color-picker v-model="p._hex" size="small" />
+                      <span class="label">alpha</span>
+                      <el-input-number v-model="p.a" :min="0" :max="1" :step="0.01" controls-position="right" size="small" />
+                    </div>
+
+                    <button class="el-button el-button--danger el-button--small" @click="rm(idx)">删除</button>
+                  </div>
+                </div>
+              `,
+              setup() {
+                const pointsRef = points;
+
+                // sync hex <-> rgb
+                const ensureHex = () => {
+                  for (const p of pointsRef.value) {
+                    if (!p._hex) p._hex = rgb01ToHex(p.r, p.g, p.b);
+                  }
+                };
+                ensureHex();
+
+                const rm = (idx) => removePoint(idx);
+
+                // watch via a timer to keep it simple in CDN mode
+                setInterval(() => {
+                  for (const p of pointsRef.value) {
+                    if (typeof p._hex === "string" && p._hex.length === 7) {
+                      const rgb = hexToRgb01(p._hex);
+                      p.r = rgb.r;
+                      p.g = rgb.g;
+                      p.b = rgb.b;
+                    }
+                  }
+                }, 150);
+
+                return { points: pointsRef, rm };
+              },
+            })
+              .use(ElementPlus)
+              .mount("#rows");
+          }, 50);
+
+          return { points };
+        },
+      });
+
+      app.use(ElementPlus).mount("#app");
+    </script>
+  </body>
+</html>

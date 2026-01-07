@@ -1,0 +1,9 @@
+{
+  "scanOptions": {
+    "typeOptions": ["动物组织", "工业制品", "植入材料", "科研样品"],
+    "powerOptions": ["40 kV / 200 µA", "50 kV / 160 µA", "60 kV / 134 µA", "70 kV / 120 µA"],
+    "fovOptions": ["12 mm", "15 mm", "18 mm", "20 mm", "25 mm"],
+    "binningOptions": ["1x1", "2x2", "3x3", "4x4"],
+    "protocolOptions": ["标准骨骼扫描", "高分辨率扫描", "缺陷复核", "材料力学测试"]
+  }
+}

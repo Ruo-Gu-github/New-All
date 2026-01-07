@@ -1,0 +1,290 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+    <None Include="SeBoneDensity.def">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="res\SeBoneDensity.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
+    <None Include="ClassDiagram3.cd" />
+    <None Include="logo.bmp">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\cursor.window.move_c_32x32.cur">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\POINTER.cur">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\icon.png">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\icon.ico">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="SeBoneDensity.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneDensityDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneDensityCtrlDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BoneDensitySwapData.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeAPRView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneDensityMouseTool.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeROIView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBinaryView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeNewMaskDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamSelectionDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamCaculate.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamAnistrophy.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamConnectivity.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamCube.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamThickness.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamBasic.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeSetDensityParamDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Easy3DViewThread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Easy3DViewDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParamSMI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneParaTBPf.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicCube.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_BoneThicknessCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_BasicCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_Calculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_ConnectivityCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_DensityCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_ImageStack.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_SMICalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_AnisotropyCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ruogu_BoneThicknessSpacingCalculator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneSegProcedureDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SeBoneSegProcedureChangeDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON_Utils.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SePDFReportGenerator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BoneDensitySwapData.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Easy3DViewDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Easy3DViewThread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeAPRView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBinaryView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneDensity.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneDensityCtrlDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneDensityDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneDensityMouseTool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamAnistrophy.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamBasic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamCaculate.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamConnectivity.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamCube.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamSelectionDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamSMI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParamThickness.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneParaTBPf.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeNewMaskDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeROIView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeSetDensityParamDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BasicCube.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_BasicCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_Calculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_ImageStack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_DensityCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_SMICalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_BoneThicknessCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_ConnectivityCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_BoneParameterCalculatorInterface.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_AnisotropyCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ruogu_BoneThicknessSpacingCalculator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneSegProcedureDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeBoneSegProcedureChangeDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="cJSON.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="cJSON_Utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SeHTMLReportGenerator_VS2010.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SePDFReportGenerator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SeBoneDensity.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

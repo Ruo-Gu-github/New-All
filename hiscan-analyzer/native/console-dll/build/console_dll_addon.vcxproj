@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4602BEEF-0DA5-D741-789B-B10DE405D708}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>console_dll_addon</RootNamespace>
+    <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Label="Locals">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+  <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props"/>
+  <ImportGroup Label="ExtensionSettings"/>
+  <ImportGroup Label="PropertySheets">
+    <Import Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"/>
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros"/>
+  <PropertyGroup>
+    <ExecutablePath>$(ExecutablePath);$(MSBuildProjectDirectory)\..\bin\;$(MSBuildProjectDirectory)\..\bin\</ExecutablePath>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+    <IntDir>$(Configuration)\obj\$(ProjectName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.node</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.node</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.node</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.node</TargetExt>
+    <TargetName>$(ProjectName)</TargetName>
+    <TargetPath>$(OutDir)\$(ProjectName).node</TargetPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:__cplusplus -std:c++17 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DisableSpecificWarnings>4351;4355;4800;4251;4275;4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <MinimalRebuild>false</MinimalRebuild>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <StringPooling>true</StringPooling>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <WarningLevel>Level3</WarningLevel>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <Link>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;delayimp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\30.5.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\ConsoleDllTest\Dlls\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
+      <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <OutputFile>$(OutDir)$(ProjectName).node</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetExt>.node</TargetExt>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:__cplusplus -std:c++17 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DisableSpecificWarnings>4351;4355;4800;4251;4275;4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>Full</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <StringPooling>true</StringPooling>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <WarningLevel>Level3</WarningLevel>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <Link>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;delayimp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\30.5.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\ConsoleDllTest\Dlls\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
+      <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <OutputFile>$(OutDir)$(ProjectName).node</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetExt>.node</TargetExt>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\binding.gyp"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\addon.cpp">
+      <ObjectFileName>$(IntDir)\src\addon.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\dicom_wrapper.cpp">
+      <ObjectFileName>$(IntDir)\src\dicom_wrapper.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\image_processing_wrapper.cpp">
+      <ObjectFileName>$(IntDir)\src\image_processing_wrapper.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\visualization_wrapper.cpp">
+      <ObjectFileName>$(IntDir)\src\visualization_wrapper.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\FatAnalysis.cpp">
+      <ObjectFileName>$(IntDir)\src\FatAnalysis.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\src\VascularAnalysis.cpp">
+      <ObjectFileName>$(IntDir)\src\VascularAnalysis.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp\src\win_delay_load_hook.cc"/>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllDicom.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllDicom.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllDicom.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllDicom.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllDicom.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllCore.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllCore.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllCore.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllCore.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllCore.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllImageProcessing.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllImageProcessing.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllImageProcessing.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllImageProcessing.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllImageProcessing.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllAnalysisBase.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllAnalysisBase.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllAnalysisBase.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllAnalysisBase.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllAnalysisBase.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllBoneAnalysis.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllBoneAnalysis.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllBoneAnalysis.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllBoneAnalysis.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllBoneAnalysis.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllFatAnalysis.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllFatAnalysis.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllFatAnalysis.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllFatAnalysis.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllFatAnalysis.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllLungAnalysis.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllLungAnalysis.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllLungAnalysis.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllLungAnalysis.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllLungAnalysis.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllVisualization.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\DllVisualization.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllVisualization.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/DllVisualization.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\DllVisualization.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmCommon.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmCommon.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmCommon.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmCommon.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmCommon.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDICT.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDICT.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmDICT.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmDICT.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmDICT.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDSED.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDSED.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmDSED.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmDSED.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmDSED.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmIOD.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmIOD.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmIOD.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmIOD.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmIOD.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMSFF.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMSFF.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmMSFF.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmMSFF.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmMSFF.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMEXD.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMEXD.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmMEXD.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmMEXD.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmMEXD.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmgetopt.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmgetopt.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmgetopt.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmgetopt.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmgetopt.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmcharls.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmcharls.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmcharls.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmcharls.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmcharls.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg8.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg8.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg8.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmjpeg8.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg8.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg12.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg12.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg12.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmjpeg12.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg12.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg16.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg16.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg16.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/gdcmjpeg16.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\gdcmjpeg16.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\openjp2.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\openjp2.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\openjp2.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/openjp2.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\openjp2.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\zlib1.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\zlib1.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\zlib1.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/zlib1.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\zlib1.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\socketxx.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\socketxx.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\socketxx.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/socketxx.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\socketxx.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\fmt.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\fmt.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\fmt.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/fmt.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\fmt.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\libexpat.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\libexpat.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\libexpat.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/libexpat.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\libexpat.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\glew32.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\glew32.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\glew32.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/glew32.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\glew32.dll</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\glfw3.dll">
+      <FileType>Document</FileType>
+      <Command>call mkdir &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release&quot; 2&gt;nul &amp; set ERRORLEVEL=0 &amp; copy /Y &quot;..\..\..\..\ConsoleDllTest\Dlls\bin\glfw3.dll&quot; &quot;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\glfw3.dll&quot;&#xD;&#xA;if %errorlevel% neq 0 exit /b %errorlevel%</Command>
+      <Message>Copying ../../../ConsoleDllTest/Dlls/bin/glfw3.dll to D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release</Message>
+      <Outputs>D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\build\Release\glfw3.dll</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="node_modules\node-addon-api\nothing.vcxproj">
+      <Project>{56152520-CA32-70CE-1235-643F8C8DEBDF}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
+  <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets"/>
+  <ImportGroup Label="ExtensionTargets"/>
+</Project>

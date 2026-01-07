@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>测试阈值分割</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <style>
+    body { padding: 20px; font-family: sans-serif; }
+    .form-item { margin-bottom: 20px; }
+    .form-label { display: block; margin-bottom: 8px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h3>阈值分割测试</h3>
+    
+    <div class="form-item">
+      <label class="form-label">最小值: {{ rigMarkMin }}</label>
+      <el-slider v-model="rigMarkMin" :min="-1024" :max="3072" show-input />
+    </div>
+    
+    <div class="form-item">
+      <label class="form-label">最大值: {{ rigMarkMax }}</label>
+      <el-slider v-model="rigMarkMax" :min="-1024" :max="3072" show-input />
+    </div>
+    
+    <div class="form-item">
+      <label class="form-label">颜色</label>
+      <el-color-picker v-model="color" />
+    </div>
+    
+    <div class="form-item">
+      <el-button @click="test">测试按钮</el-button>
+    </div>
+  </div>
+  
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/element-plus"></script>
+  <script>
+    const { createApp, ref } = Vue;
+    
+    createApp({
+      setup() {
+        const rigMarkMin = ref(-1024);
+        const rigMarkMax = ref(3072);
+        const color = ref('#ffff00');
+        
+        function test() {
+          alert(`Min: ${rigMarkMin.value}, Max: ${rigMarkMax.value}, Color: ${color.value}`);
+        }
+        
+        return {
+          rigMarkMin,
+          rigMarkMax,
+          color,
+          test
+        };
+      }
+    })
+    .use(ElementPlus)
+    .mount('#app');
+  </script>
+</body>
+</html>

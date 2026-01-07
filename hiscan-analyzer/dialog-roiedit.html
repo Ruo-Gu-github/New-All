@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROI编辑</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+
+      /* 自定义标题栏 */
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+
+      .titlebar-close:hover {
+        background: #eee;
+      }
+
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .tool-section {
+        margin-bottom: 24px;
+      }
+
+      .tool-label {
+        display: block;
+        margin-bottom: 12px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .tool-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .tool-btn {
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .tool-btn:hover {
+        background: #f9f9f9;
+        border-color: #999;
+      }
+
+      .tool-btn.active {
+        background: #ddd;
+        border-color: #999;
+      }
+
+      .info-box {
+        padding: 16px;
+        background: #f9f9f9;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 24px;
+      }
+
+      .color-preview {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .color-box {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        border: 2px solid #dcdfe6;
+      }
+
+      .dialog-footer {
+        padding-top: 16px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 自定义标题栏 -->
+    <div class="custom-titlebar">
+      <div class="titlebar-title">ROI编辑工具</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <div class="info-box">
+        <div style="font-weight: 500; margin-bottom: 8px">📝 操作说明</div>
+        <div>• 选择下方工具后，在 MPR 视图中绘制ROI区域</div>
+        <div>• 支持自由曲线、矩形、椭圆、多边形等工具</div>
+        <div>• 绘制完成后点击"应用ROI"生成掩膜</div>
+        <div style="margin-top: 8px; color: #909399">
+          💡 此窗口为非模态窗口，您可以自由操作 MPR 视图
+        </div>
+      </div>
+
+      <div class="tool-section">
+        <label class="tool-label">绘制工具</label>
+        <div class="tool-buttons">
+          <button class="tool-btn" data-tool="freehand">
+            <span>✏️</span>
+            <span>自由曲线</span>
+          </button>
+          <button class="tool-btn" data-tool="rectangle">
+            <span>⬜</span>
+            <span>矩形</span>
+          </button>
+          <button class="tool-btn" data-tool="ellipse">
+            <span>⭕</span>
+            <span>椭圆</span>
+          </button>
+          <button class="tool-btn" data-tool="polygon">
+            <span>⬡</span>
+            <span>多边形</span>
+          </button>
+          <button class="tool-btn" data-tool="magic">
+            <span>🪄</span>
+            <span>魔棒选择</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-section">
+        <label class="tool-label">ROI颜色</label>
+        <div class="color-preview">
+          <div class="color-box" id="roi-color-box"></div>
+          <div id="color-picker-container"></div>
+        </div>
+      </div>
+
+      <div
+        class="tool-section"
+        style="flex: 1; display: flex; flex-direction: column"
+      >
+        <label class="tool-label">当前ROI列表</label>
+        <div
+          style="
+            flex: 1;
+            border: 1px solid #e4e7ed;
+            border-radius: 4px;
+            padding: 12px;
+            background: #fafafa;
+            overflow-y: auto;
+          "
+        >
+          <div
+            id="roi-list"
+            style="color: #909399; text-align: center; padding: 20px"
+          >
+            暂无ROI
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="clear-btn" class="el-button">清除所有</button>
+        <button id="cancel-btn" class="el-button">关闭</button>
+        <button id="apply-btn" class="el-button el-button--primary">
+          应用ROI
+        </button>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref, onMounted } = Vue;
+      const { ElColorPicker } = ElementPlus;
+
+      const app = createApp({
+        components: {
+          ElColorPicker,
+        },
+        setup() {
+          const roiColor = ref("#ffff00");
+          const currentTool = ref("");
+          const roiList = ref([]);
+          let sessionId = "";
+
+          onMounted(() => {
+            console.log("[ROI Dialog] Mounted");
+
+            // Prefer init-data from main process (works in dev/prod)
+            try {
+              if (window.electronAPI?.on) {
+                window.electronAPI.on("dialog:init-data", (params) => {
+                  if (params && typeof params === "object") {
+                    if (typeof params.sessionId === "string") {
+                      sessionId = params.sessionId;
+                    }
+                    if (typeof params.roiColor === "string") {
+                      roiColor.value = params.roiColor;
+                      updateColorPreview();
+                    }
+                  }
+                  console.log("[ROI Dialog] init-data:", params);
+                });
+              }
+              window.electronAPI?.send?.("dialog:ready");
+            } catch (e) {
+              console.warn("[ROI Dialog] init-data hookup failed:", e);
+            }
+
+            // Fallback: URL params (kept for backward compatibility)
+            try {
+              const q = new URLSearchParams(window.location.search);
+              const fromUrl = q.get("sessionId");
+              if (!sessionId && fromUrl) sessionId = fromUrl;
+            } catch {
+              // ignore
+            }
+
+            console.log("[ROI Dialog] SessionId:", sessionId);
+
+            // 绑定工具按钮
+            document.querySelectorAll(".tool-btn").forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const tool = btn.getAttribute("data-tool");
+                selectTool(tool);
+
+                // 更新按钮状态
+                document
+                  .querySelectorAll(".tool-btn")
+                  .forEach((b) => b.classList.remove("active"));
+                btn.classList.add("active");
+              });
+            });
+
+            // 更新颜色预览
+            updateColorPreview();
+
+            // 绑定按钮事件
+            document
+              .getElementById("close-btn")
+              ?.addEventListener("click", cancel);
+            document
+              .getElementById("cancel-btn")
+              ?.addEventListener("click", cancel);
+            document
+              .getElementById("apply-btn")
+              ?.addEventListener("click", apply);
+            document
+              .getElementById("clear-btn")
+              ?.addEventListener("click", clearAll);
+          });
+
+          function selectTool(tool) {
+            currentTool.value = tool;
+            console.log("[ROI Dialog] Selected tool:", tool);
+
+            // 通知主窗口切换工具
+            window.electronAPI.send("roi:select-tool", { sessionId, tool });
+          }
+
+          function updateColorPreview() {
+            const colorBox = document.getElementById("roi-color-box");
+            if (colorBox) {
+              colorBox.style.background = roiColor.value;
+            }
+          }
+
+          function clearAll() {
+            if (confirm("确定要清除所有ROI吗？")) {
+              roiList.value = [];
+              updateRoiList();
+              window.electronAPI.send("roi:clear-all", { sessionId });
+            }
+          }
+
+          function updateRoiList() {
+            const listEl = document.getElementById("roi-list");
+            if (!listEl) return;
+
+            if (roiList.value.length === 0) {
+              listEl.innerHTML =
+                '<div style="color: #909399; text-align: center; padding: 20px;">暂无ROI</div>';
+            } else {
+              listEl.innerHTML = roiList.value
+                .map(
+                  (roi, index) => `
+              <div style="padding: 8px; border: 1px solid #e4e7ed; border-radius: 4px; margin-bottom: 8px; background: white;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="width: 16px; height: 16px; background: ${
+                    roi.color
+                  }; border-radius: 3px; border: 1px solid #aaa;"></span>
+                  <span>ROI ${index + 1}</span>
+                  <span style="margin-left: auto; font-size: 12px; color: #909399;">${
+                    roi.tool
+                  }</span>
+                </div>
+              </div>
+            `
+                )
+                .join("");
+            }
+          }
+
+          function cancel() {
+            window.electronAPI.send("dialog:close", { action: "cancel" });
+          }
+
+          function apply() {
+            window.electronAPI.send("dialog:close", {
+              action: "apply",
+              data: {
+                roiList: roiList.value,
+                color: roiColor.value,
+              },
+            });
+          }
+
+          // 监听颜色变化
+          setTimeout(() => {
+            const colorPickerApp = createApp({
+              template: `<el-color-picker v-model="value" show-alpha @change="onChange" />`,
+              setup() {
+                return {
+                  value: roiColor,
+                  onChange: (val) => {
+                    roiColor.value = val;
+                    updateColorPreview();
+                  },
+                };
+              },
+            });
+            colorPickerApp.use(ElementPlus).mount("#color-picker-container");
+          }, 200);
+
+          return {
+            roiColor,
+            currentTool,
+            roiList,
+          };
+        },
+      });
+
+      app.use(ElementPlus);
+      app.mount("#app");
+    </script>
+  </body>
+</html>

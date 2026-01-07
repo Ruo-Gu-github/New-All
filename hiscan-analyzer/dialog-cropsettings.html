@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>裁切设置</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+
+      .titlebar-close:hover {
+        background: #eee;
+      }
+
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .shape-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .shape-btn {
+        padding: 10px 16px;
+        border: 2px solid #dcdfe6;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-width: 75px;
+      }
+
+      .shape-btn:hover {
+        border-color: #409eff;
+        background: #ecf5ff;
+      }
+
+      .shape-btn.active {
+        border-color: #409eff;
+        background: #ecf5ff;
+        color: #409eff;
+      }
+
+      .shape-icon {
+        font-size: 20px;
+      }
+
+      .shape-label {
+        font-size: 12px;
+      }
+
+      .size-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+
+      .size-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .size-input-label {
+        font-size: 12px;
+        color: #909399;
+      }
+
+      .size-input {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .size-input input {
+        width: 70px;
+        padding: 6px 8px;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        font-size: 13px;
+        text-align: right;
+      }
+
+      .size-input input:focus {
+        outline: none;
+        border-color: #409eff;
+      }
+
+      .unit-label {
+        font-size: 12px;
+        color: #909399;
+        min-width: 25px;
+      }
+
+      .unit-selector {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .unit-btn {
+        padding: 5px 12px;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+      }
+
+      .unit-btn:hover {
+        border-color: #409eff;
+      }
+
+      .unit-btn.active {
+        border-color: #409eff;
+        background: #409eff;
+        color: white;
+      }
+
+      .direction-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .direction-btn {
+        padding: 6px 12px;
+        border: 1px solid #dcdfe6;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+      }
+
+      .direction-btn:hover {
+        border-color: #409eff;
+      }
+
+      .direction-btn.active {
+        border-color: #409eff;
+        background: #409eff;
+        color: white;
+      }
+
+      .dialog-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid #e4e7ed;
+      }
+
+      .info-text {
+        font-size: 11px;
+        color: #909399;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <span class="titlebar-title">裁切设置</span>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <!-- 形状选择 -->
+      <div class="section">
+        <span class="section-title">裁切形状</span>
+        <div class="shape-buttons">
+          <button
+            class="shape-btn"
+            :class="{ active: shape === 0 }"
+            @click="shape = 0"
+          >
+            <span class="shape-icon">☐</span>
+            <span class="shape-label">立方体</span>
+          </button>
+          <button
+            class="shape-btn"
+            :class="{ active: shape === 1 }"
+            @click="shape = 1"
+          >
+            <span class="shape-icon">○</span>
+            <span class="shape-label">球体</span>
+          </button>
+          <button
+            class="shape-btn"
+            :class="{ active: shape === 2 }"
+            @click="shape = 2"
+          >
+            <span class="shape-icon">◎</span>
+            <span class="shape-label">圆柱体</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 单位选择 -->
+      <div class="section">
+        <span class="section-title">尺寸单位</span>
+        <div class="unit-selector">
+          <button
+            class="unit-btn"
+            :class="{ active: unit === 'mm' }"
+            @click="selectUnit('mm')"
+          >
+            毫米 (mm)
+          </button>
+          <button
+            class="unit-btn"
+            :class="{ active: unit === 'px' }"
+            @click="selectUnit('px')"
+          >
+            像素 (px)
+          </button>
+        </div>
+      </div>
+
+      <!-- 尺寸设置 - 立方体 -->
+      <div class="section" v-if="shape === 0">
+        <span class="section-title">尺寸设置</span>
+        <div class="size-inputs">
+          <div class="size-input-group">
+            <span class="size-input-label">宽度 (X)</span>
+            <div class="size-input">
+              <input type="number" v-model.number="sizeX" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+          <div class="size-input-group">
+            <span class="size-input-label">高度 (Y)</span>
+            <div class="size-input">
+              <input type="number" v-model.number="sizeY" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+          <div class="size-input-group">
+            <span class="size-input-label">深度 (Z)</span>
+            <div class="size-input">
+              <input type="number" v-model.number="sizeZ" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="info-text">裁切框将以当前中心位置调整到指定尺寸</p>
+      </div>
+
+      <!-- 尺寸设置 - 球体 -->
+      <div class="section" v-if="shape === 1">
+        <span class="section-title">尺寸设置</span>
+        <div class="size-inputs">
+          <div class="size-input-group">
+            <span class="size-input-label">直径</span>
+            <div class="size-input">
+              <input type="number" v-model.number="diameter" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="info-text">球体将以裁切框中心为圆心</p>
+      </div>
+
+      <!-- 尺寸设置 - 圆柱体 -->
+      <div class="section" v-if="shape === 2">
+        <span class="section-title">尺寸设置</span>
+        <div class="size-inputs">
+          <div class="size-input-group">
+            <span class="size-input-label">直径</span>
+            <div class="size-input">
+              <input type="number" v-model.number="diameter" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+          <div class="size-input-group">
+            <span class="size-input-label">高度</span>
+            <div class="size-input">
+              <input type="number" v-model.number="cylinderHeight" min="1" />
+              <span class="unit-label">{{ unit }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 圆柱体方向 -->
+      <div class="section" v-if="shape === 2">
+        <span class="section-title">圆柱体方向</span>
+        <div class="direction-buttons">
+          <button
+            class="direction-btn"
+            :class="{ active: direction === 0 }"
+            @click="direction = 0"
+          >
+            轴向 (Z轴)
+          </button>
+          <button
+            class="direction-btn"
+            :class="{ active: direction === 1 }"
+            @click="direction = 1"
+          >
+            冠状 (Y轴)
+          </button>
+          <button
+            class="direction-btn"
+            :class="{ active: direction === 2 }"
+            @click="direction = 2"
+          >
+            矢状 (X轴)
+          </button>
+        </div>
+        <p class="info-text">圆柱体沿选定轴向延伸</p>
+      </div>
+
+      <!-- 按钮组 -->
+      <div class="dialog-footer">
+        <button class="el-button" @click="cancel">取消</button>
+        <button class="el-button el-button--primary" @click="apply">
+          应用
+        </button>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref } = Vue;
+
+      createApp({
+        setup() {
+          const shape = ref(0); // 0=立方体, 1=球体, 2=圆柱体
+          const unit = ref("mm");
+          const sizeX = ref(100);
+          const sizeY = ref(100);
+          const sizeZ = ref(100);
+          const diameter = ref(100);
+          const cylinderHeight = ref(100);
+          const direction = ref(0); // 0=轴向, 1=冠状, 2=矢状
+
+          // 体素尺寸
+          const spacing = ref({ x: 1.0, y: 1.0, z: 1.0 });
+          const volumeDims = ref({ width: 512, height: 512, depth: 256 });
+
+          const applyInitData = (params) => {
+            if (!params || typeof params !== "object") return;
+            console.log("[CropSettings] init-data:", params);
+
+            if (params.spacing) spacing.value = params.spacing;
+            if (params.volumeDims) volumeDims.value = params.volumeDims;
+            if (typeof params.shape === "number") shape.value = params.shape;
+            if (typeof params.cylinderDirection === "number")
+              direction.value = params.cylinderDirection;
+
+            // 从裁切框设置初始尺寸
+            if (params.cropBox) {
+              const box = params.cropBox;
+              const sp = spacing.value;
+              if (box.xEnd !== undefined && box.xStart !== undefined) {
+                sizeX.value =
+                  Math.round((box.xEnd - box.xStart) * sp.x * 10) / 10;
+              }
+              if (box.yEnd !== undefined && box.yStart !== undefined) {
+                sizeY.value =
+                  Math.round((box.yEnd - box.yStart) * sp.y * 10) / 10;
+              }
+              if (box.zEnd !== undefined && box.zStart !== undefined) {
+                sizeZ.value =
+                  Math.round((box.zEnd - box.zStart) * sp.z * 10) / 10;
+              }
+              // 设置球体/圆柱体的直径（取X/Y中较小的）
+              diameter.value = Math.min(sizeX.value, sizeY.value);
+              cylinderHeight.value = sizeZ.value;
+            }
+          };
+
+          // 从主进程接收初始化数据
+          try {
+            if (window.electronAPI?.on) {
+              window.electronAPI.on("dialog:init-data", (params) => {
+                applyInitData(params);
+              });
+            }
+            window.electronAPI?.send?.("dialog:ready");
+          } catch (e) {
+            console.warn("[CropSettings] init-data hookup failed:", e);
+          }
+
+          const selectUnit = (newUnit) => {
+            if (newUnit === unit.value) return;
+
+            const sp = spacing.value;
+            if (newUnit === "mm" && unit.value === "px") {
+              // 从像素转换到毫米
+              sizeX.value = Math.round(sizeX.value * sp.x * 10) / 10;
+              sizeY.value = Math.round(sizeY.value * sp.y * 10) / 10;
+              sizeZ.value = Math.round(sizeZ.value * sp.z * 10) / 10;
+              diameter.value = Math.round(diameter.value * sp.x * 10) / 10;
+              cylinderHeight.value =
+                Math.round(cylinderHeight.value * sp.z * 10) / 10;
+            } else if (newUnit === "px" && unit.value === "mm") {
+              // 从毫米转换到像素
+              sizeX.value = Math.round(sizeX.value / sp.x);
+              sizeY.value = Math.round(sizeY.value / sp.y);
+              sizeZ.value = Math.round(sizeZ.value / sp.z);
+              diameter.value = Math.round(diameter.value / sp.x);
+              cylinderHeight.value = Math.round(cylinderHeight.value / sp.z);
+            }
+            unit.value = newUnit;
+          };
+
+          const cancel = () => {
+            window.electronAPI?.send?.("dialog:close", { action: "cancel" });
+          };
+
+          const apply = () => {
+            const sp = spacing.value;
+
+            // 计算像素尺寸
+            let pxSizeX, pxSizeY, pxSizeZ;
+            if (unit.value === "mm") {
+              pxSizeX = Math.round(sizeX.value / sp.x);
+              pxSizeY = Math.round(sizeY.value / sp.y);
+              pxSizeZ = Math.round(sizeZ.value / sp.z);
+            } else {
+              pxSizeX = sizeX.value;
+              pxSizeY = sizeY.value;
+              pxSizeZ = sizeZ.value;
+            }
+
+            // 球体/圆柱体的像素尺寸
+            const pxDiameter =
+              unit.value === "mm"
+                ? Math.round(diameter.value / sp.x)
+                : diameter.value;
+            const pxCylinderHeight =
+              unit.value === "mm"
+                ? Math.round(cylinderHeight.value / sp.z)
+                : cylinderHeight.value;
+
+            const result = {
+              action: "apply",
+              data: {
+                shape: shape.value,
+                direction: direction.value,
+                sizeX: pxSizeX,
+                sizeY: pxSizeY,
+                sizeZ: pxSizeZ,
+                diameter: pxDiameter,
+                cylinderHeight: pxCylinderHeight,
+              },
+            };
+
+            console.log("[CropSettings] Applying:", result);
+            window.electronAPI?.send?.("dialog:close", result);
+          };
+
+          // 关闭按钮
+          setTimeout(() => {
+            document
+              .getElementById("close-btn")
+              ?.addEventListener("click", cancel);
+          }, 100);
+
+          return {
+            shape,
+            unit,
+            sizeX,
+            sizeY,
+            sizeZ,
+            diameter,
+            cylinderHeight,
+            direction,
+            selectUnit,
+            cancel,
+            apply,
+          };
+        },
+      })
+        .use(ElementPlus)
+        .mount("#app");
+    </script>
+  </body>
+</html>

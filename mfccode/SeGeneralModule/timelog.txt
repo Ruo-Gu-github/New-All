@@ -1,0 +1,6 @@
+used time for get all points 12 times is: 2453 ms.
+used time for get all points 12 times is: 2469 ms.
+used time for get all points 12 times is: 2484 ms.
+used time for get all points 12 times is: 2453 ms.
+used time for get all points 12 times is: 2484 ms.
+used time for get all points 12 times is: 2468 ms.

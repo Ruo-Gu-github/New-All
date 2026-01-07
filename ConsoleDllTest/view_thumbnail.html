@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM 缩略图查看器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .controls label {
+            margin: 0 10px;
+            color: #555;
+        }
+        
+        .controls input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .preview-area {
+            display: none;
+            text-align: center;
+        }
+        
+        .image-container {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-panel {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .info-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .info-value {
+            color: #555;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 DICOM 缩略图查看器</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p style="color: #667eea; font-size: 18px; margin-bottom: 10px;">点击或拖拽 BMP 缩略图文件到此处</p>
+            <p style="color: #999; font-size: 14px;">支持 BMP 格式图片</p>
+            <input type="file" id="fileInput" accept=".bmp,image/bmp">
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="controls">
+            <label>
+                亮度: <input type="number" id="brightness" value="0" min="-100" max="100" step="5">
+            </label>
+            <label>
+                对比度: <input type="number" id="contrast" value="100" min="0" max="200" step="10">
+            </label>
+            <button class="btn" onclick="applyAdjustments()">应用调整</button>
+            <button class="btn" onclick="resetAdjustments()">重置</button>
+            <button class="btn" onclick="downloadImage()">下载调整后的图片</button>
+        </div>
+        
+        <div class="preview-area" id="previewArea">
+            <div class="image-container">
+                <canvas id="canvas"></canvas>
+            </div>
+            
+            <div class="info-panel" id="infoPanel">
+                <div class="info-item">
+                    <span class="info-label">文件名:</span>
+                    <span class="info-value" id="fileName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">图片尺寸:</span>
+                    <span class="info-value" id="imageSize">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">文件大小:</span>
+                    <span class="info-value" id="fileSize">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">像素范围:</span>
+                    <span class="info-value" id="pixelRange">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalImageData = null;
+        let currentFileName = '';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const previewArea = document.getElementById('previewArea');
+        const statusDiv = document.getElementById('status');
+        
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) loadImage(file);
+        });
+        
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) loadImage(file);
+        });
+        
+        function showStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + (isError ? 'error' : 'success');
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        function loadImage(file) {
+            currentFileName = file.name;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // 保存原始图像数据
+                    originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // 计算像素范围
+                    const data = originalImageData.data;
+                    let min = 255, max = 0;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = data[i]; // R 通道（灰度图）
+                        if (gray < min) min = gray;
+                        if (gray > max) max = gray;
+                    }
+                    
+                    // 更新信息面板
+                    document.getElementById('fileName').textContent = currentFileName;
+                    document.getElementById('imageSize').textContent = `${img.width} × ${img.height} 像素`;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    document.getElementById('pixelRange').textContent = `${min} - ${max}`;
+                    
+                    previewArea.style.display = 'block';
+                    showStatus('✓ 图片加载成功！');
+                };
+                img.onerror = function() {
+                    showStatus('× 图片加载失败，请确保文件格式正确', true);
+                };
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        
+        function applyAdjustments() {
+            if (!originalImageData) return;
+            
+            const brightness = parseInt(document.getElementById('brightness').value);
+            const contrast = parseInt(document.getElementById('contrast').value) / 100;
+            
+            const imageData = ctx.createImageData(originalImageData);
+            const src = originalImageData.data;
+            const dst = imageData.data;
+            
+            const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+            
+            for (let i = 0; i < src.length; i += 4) {
+                // 应用对比度和亮度
+                let r = src[i];
+                let g = src[i + 1];
+                let b = src[i + 2];
+                
+                // 对比度
+                r = factor * (r - 128) + 128;
+                g = factor * (g - 128) + 128;
+                b = factor * (b - 128) + 128;
+                
+                // 亮度
+                r += brightness;
+                g += brightness;
+                b += brightness;
+                
+                // 限制范围
+                dst[i] = Math.max(0, Math.min(255, r));
+                dst[i + 1] = Math.max(0, Math.min(255, g));
+                dst[i + 2] = Math.max(0, Math.min(255, b));
+                dst[i + 3] = src[i + 3];
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            showStatus('✓ 调整已应用');
+        }
+        
+        function resetAdjustments() {
+            if (!originalImageData) return;
+            
+            document.getElementById('brightness').value = 0;
+            document.getElementById('contrast').value = 100;
+            ctx.putImageData(originalImageData, 0, 0);
+            showStatus('✓ 已重置为原始图片');
+        }
+        
+        function downloadImage() {
+            if (!originalImageData) return;
+            
+            const link = document.createElement('a');
+            link.download = 'adjusted_' + currentFileName.replace('.bmp', '.png');
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showStatus('✓ 图片已下载');
+        }
+        
+        // 自动加载 thumbnail.bmp（如果存在）
+        window.addEventListener('load', () => {
+            fetch('thumbnail.bmp')
+                .then(response => response.blob())
+                .then(blob => {
+                    const file = new File([blob], 'thumbnail.bmp', { type: 'image/bmp' });
+                    loadImage(file);
+                })
+                .catch(() => {
+                    console.log('未找到 thumbnail.bmp，等待用户上传');
+                });
+        });
+    </script>
+</body>
+</html>

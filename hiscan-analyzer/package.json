@@ -1,0 +1,32 @@
+{
+  "name": "hiscan-analyzer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "set NODE_OPTIONS=--max-old-space-size=8192 && vite",
+    "build:native:ogl": "node scripts/build-opengl-addon.cjs",
+    "sync:console-dlls": "node scripts/sync-console-dlls.cjs",
+    "postinstall": "node scripts/patch-node-gyp-vs2026.cjs",
+    "build": "vue-tsc && vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "element-plus": "^2.11.5",
+    "node-addon-api": "^8.5.0",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "vue-tsc": "^2.0.26",
+    "electron": "^30.0.1",
+    "electron-builder": "^26.0.12",
+    "node-gyp": "^11.0.0",
+    "vite-plugin-electron": "^0.28.6",
+    "vite-plugin-electron-renderer": "^0.14.5"
+  },
+  "main": "dist-electron/main.js"
+}

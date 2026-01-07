@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>选择颜色</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+      .titlebar-close:hover {
+        background: #eee;
+      }
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+      }
+      .color-preview {
+        width: 100%;
+        height: 80px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        margin-bottom: 24px;
+      }
+      .color-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .color-item {
+        width: 100%;
+        padding-bottom: 100%;
+        position: relative;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .color-item.selected {
+        border: 3px solid #409eff;
+        box-shadow: 0 0 8px rgba(64, 158, 255, 0.5);
+      }
+      .color-item:not(.selected) {
+        border: 2px solid #dcdfe6;
+      }
+      .section-title {
+        display: block;
+        margin-bottom: 12px;
+        color: #606266;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      .dialog-footer {
+        padding-top: 16px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">选择颜色</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+    <div id="app">
+      <div class="color-preview" id="preview"></div>
+      <label class="section-title">快捷颜色</label>
+      <div class="color-grid" id="color-grid"></div>
+      <label class="section-title">自定义颜色</label>
+      <div style="display: flex; justify-content: center; margin-bottom: 24px">
+        <div id="color-picker"></div>
+      </div>
+      <div class="dialog-footer">
+        <button id="close-footer-btn" class="el-button el-button--primary">
+          关闭
+        </button>
+      </div>
+    </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref } = Vue;
+      const app = createApp({
+        setup() {
+          const selectedColor = ref("#ffff00");
+
+          const applyInitData = (p) => {
+            if (!p || typeof p !== "object") return;
+            const initialColor = p.currentColor;
+            if (typeof initialColor === "string" && initialColor) {
+              selectedColor.value = initialColor;
+            }
+          };
+
+          // Prefer init-data from main process (works in dev/prod)
+          try {
+            if (window.electronAPI?.on) {
+              window.electronAPI.on("dialog:init-data", (params) => {
+                applyInitData(params);
+                updatePreview();
+                console.log("[ColorPicker Dialog] init-data:", params);
+              });
+            }
+            window.electronAPI?.send?.("dialog:ready");
+          } catch (e) {
+            console.warn("[ColorPicker Dialog] init-data hookup failed:", e);
+          }
+
+          // Fallback: URL params
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const initialColor = params.get("currentColor");
+            if (initialColor) selectedColor.value = initialColor;
+          } catch {
+            // ignore
+          }
+
+          const colors = [
+            "#ff0000",
+            "#ff4500",
+            "#ff8c00",
+            "#ffd700",
+            "#00ff00",
+            "#00ffff",
+            "#1e90ff",
+            "#0000ff",
+            "#9370db",
+            "#ff1493",
+            "#ff69b4",
+            "#ffffff",
+            "#cccccc",
+            "#808080",
+            "#404040",
+            "#000000",
+          ];
+
+          const updatePreview = () => {
+            document.getElementById("preview").style.background =
+              selectedColor.value;
+            document.querySelectorAll(".color-item").forEach((el) => {
+              el.classList.toggle(
+                "selected",
+                el.dataset.color === selectedColor.value
+              );
+            });
+            window.electronAPI.send("dialog:color-change", {
+              color: selectedColor.value,
+            });
+          };
+
+          const close = () =>
+            window.electronAPI.send("dialog:close", {
+              action: "close",
+              data: { color: selectedColor.value },
+            });
+
+          setTimeout(() => {
+            const grid = document.getElementById("color-grid");
+            colors.forEach((color) => {
+              const div = document.createElement("div");
+              div.className = "color-item";
+              div.dataset.color = color;
+              div.style.background = color;
+              div.addEventListener("click", () => {
+                selectedColor.value = color;
+                updatePreview();
+              });
+              grid.appendChild(div);
+            });
+
+            updatePreview();
+
+            document
+              .getElementById("close-btn")
+              .addEventListener("click", close);
+            document
+              .getElementById("close-footer-btn")
+              .addEventListener("click", close);
+
+            createApp({
+              template:
+                '<el-color-picker v-model="value" show-alpha size="large" @change="onChange" />',
+              setup: () => ({ value: selectedColor, onChange: updatePreview }),
+            })
+              .use(ElementPlus)
+              .mount("#color-picker");
+          }, 100);
+
+          return { selectedColor };
+        },
+      });
+      app.use(ElementPlus).mount("#app");
+    </script>
+  </body>
+</html>

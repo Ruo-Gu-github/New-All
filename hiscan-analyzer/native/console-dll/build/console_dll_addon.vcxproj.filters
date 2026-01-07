@@ -1,0 +1,712 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:">
+      <UniqueIdentifier>{E5D29F2B-0177-9942-CA95-0FF700094F89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\2025-09-25 新系列">
+      <UniqueIdentifier>{1F3E5F12-6C9B-E76E-EFAA-687CF17EF0EC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\2025-09-25 新系列\hiscan-analyzer">
+      <UniqueIdentifier>{927B97E1-F977-8652-B0E3-F0CEF013554A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules">
+      <UniqueIdentifier>{56DF7A98-063D-FB9D-485C-089023B4C16A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp">
+      <UniqueIdentifier>{77348C0E-2034-7791-74D5-63C077DF5A3B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp\src">
+      <UniqueIdentifier>{8CDEE807-BC53-E450-C8B8-4DEBB66742D4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..">
+      <UniqueIdentifier>{739DB09A-CC57-A953-A6CF-F64FA08E4FA7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest">
+      <UniqueIdentifier>{A9BB2743-A53F-641B-BB3C-770AEB0D04A0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls">
+      <UniqueIdentifier>{AA9B8DFA-7474-61BE-6BED-073EF0994175}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\..\..\..\ConsoleDllTest\Dlls\bin">
+      <UniqueIdentifier>{11CC0371-6539-7E04-3B24-030E187A74AC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\addon.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dicom_wrapper.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\image_processing_wrapper.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\visualization_wrapper.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FatAnalysis.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\VascularAnalysis.cpp">
+      <Filter>..\src</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp\src\win_delay_load_hook.cc">
+      <Filter>D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp\src</Filter>
+    </ClCompile>
+    <None Include="..\binding.gyp">
+      <Filter>..</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllDicom.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllCore.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllImageProcessing.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllAnalysisBase.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllBoneAnalysis.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllFatAnalysis.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllLungAnalysis.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllVisualization.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmCommon.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDICT.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmDSED.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmIOD.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMSFF.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmMEXD.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmgetopt.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmcharls.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg8.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg12.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\gdcmjpeg16.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\openjp2.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\zlib1.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\socketxx.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\fmt.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\libexpat.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\glew32.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+    <None Include="..\..\..\..\ConsoleDllTest\Dlls\bin\glfw3.dll">
+      <Filter>..\..\..\..\ConsoleDllTest\Dlls\bin</Filter>
+    </None>
+  </ItemGroup>
+</Project>

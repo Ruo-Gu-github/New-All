@@ -1,0 +1,19 @@
+diff --git a/lib/find-visualstudio.js b/lib/find-visualstudio.js
+index 24e5cf0..5a0f1da 100644
+--- a/lib/find-visualstudio.js
++++ b/lib/find-visualstudio.js
+@@ -383,6 +383,14 @@ class VisualStudioFinder {
+     if (ret.versionMajor === 17) {
+       ret.versionYear = 2022
+       return ret
+     }
+
++    // Visual Studio 2026 reports major version 18.x. Toolset/SDK layout is
++    // compatible with VS2022 for node-gyp purposes (MSVC v143).
++    if (ret.versionMajor === 18) {
++      ret.versionYear = 2022
++      return ret
++    }
+     this.log.silly('- unsupported version:', ret.versionMajor)
+     return {}
+   }

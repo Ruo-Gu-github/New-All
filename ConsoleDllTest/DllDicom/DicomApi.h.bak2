@@ -1,0 +1,57 @@
+#pragma once
+#include "../Common/NativeInterfaces.h"
+
+// DLL 导出宏
+#ifdef DLLDICOM_EXPORTS
+#define DICOM_API __declspec(dllexport)
+#else
+#define DICOM_API __declspec(dllimport)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// ==================== 错误处理 ====================
+/// 获取最后错误信息
+DICOM_API const char* Dicom_GetLastError();
+
+// ==================== DICOM 文件读写 ====================
+/// 创建 DICOM 读取器
+DICOM_API DicomReaderHandle Dicom_CreateReader();
+/// 销毁 DICOM 读取器
+DICOM_API void Dicom_DestroyReader(DicomReaderHandle handle);
+/// 读取 DICOM 文件
+DICOM_API NativeResult Dicom_ReadFile(DicomReaderHandle handle, const char* filepath);
+/// 读取 DICOM 目录（多文件序列）
+DICOM_API NativeResult Dicom_ReadDirectory(DicomReaderHandle handle, const char* dirpath, int* fileCount);
+
+// ==================== DICOM Tag 操作 ====================
+/// 获取 DICOM Tag 值（使用 Group 和 Element）
+DICOM_API NativeResult Dicom_GetTag(DicomReaderHandle handle, uint16_t group, uint16_t element, char* buffer, int bufferSize);
+/// 获取图像尺寸
+DICOM_API NativeResult Dicom_GetImageSize(DicomReaderHandle handle, int* width, int* height);
+
+// ==================== 体数据管理 ====================
+/// 创建体数据
+DICOM_API VolumeHandle Dicom_Volume_Create();
+/// 销毁体数据
+DICOM_API void Dicom_Volume_Destroy(VolumeHandle handle);
+/// 从 DICOM 序列加载体数据
+DICOM_API NativeResult Dicom_Volume_LoadFromDicomSeries(VolumeHandle handle, const char* directory);
+/// 获取体数据指针
+DICOM_API void* Dicom_Volume_GetData(VolumeHandle handle);
+/// 获取体数据尺寸
+DICOM_API NativeResult Dicom_Volume_GetDimensions(VolumeHandle handle, int* width, int* height, int* depth);
+/// 获取体素间距
+DICOM_API NativeResult Dicom_Volume_GetSpacing(VolumeHandle handle, float* spacingX, float* spacingY, float* spacingZ);
+
+#ifdef __cplusplus
+}
+#endif
+/// 保存体数据到 DICOM 序列
+NativeResult Volume_SaveToDicomSeries(VolumeHandle handle, const char* outputDir);
+
+#ifdef __cplusplus
+}
+#endif

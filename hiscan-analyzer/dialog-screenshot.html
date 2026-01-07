@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>选择截图视图</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+      .titlebar-close:hover {
+        background: #eee;
+      }
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+      }
+      .info-text {
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .dialog-footer {
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">选择截图视图</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+    <div id="app">
+      <div class="info-text">请选择要截图的视图（可多选）:</div>
+      <div id="checkbox-group"></div>
+      <div class="dialog-footer">
+        <button id="cancel-btn" class="el-button">取消</button>
+        <button id="capture-btn" class="el-button el-button--primary">
+          截图
+        </button>
+      </div>
+    </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref } = Vue;
+      const app = createApp({
+        setup() {
+          const selection = ref([
+            "axial",
+            "coronal",
+            "sagittal",
+            "3d",
+            "mpr+3d",
+          ]);
+
+          const cancel = () =>
+            window.electronAPI.send("dialog:close", { action: "cancel" });
+          const capture = () =>
+            window.electronAPI.send("dialog:close", {
+              action: "capture",
+              data: { selection: selection.value },
+            });
+
+          setTimeout(() => {
+            document
+              .getElementById("close-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("cancel-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("capture-btn")
+              .addEventListener("click", capture);
+
+            createApp({
+              template: `
+              <el-checkbox-group v-model="value">
+                <el-checkbox value="axial" label="轴位视图" style="display:block;margin-bottom:12px;" />
+                <el-checkbox value="coronal" label="冠状位视图" style="display:block;margin-bottom:12px;" />
+                <el-checkbox value="sagittal" label="矢状位视图" style="display:block;margin-bottom:12px;" />
+                <el-checkbox value="3d" label="3D视图" style="display:block;margin-bottom:12px;" />
+                <el-checkbox value="mpr+3d" label="MPR+3D组合视图" style="display:block;margin-bottom:12px;" />
+              </el-checkbox-group>
+            `,
+              setup: () => ({ value: selection }),
+            })
+              .use(ElementPlus)
+              .mount("#checkbox-group");
+          }, 100);
+
+          return { selection };
+        },
+      });
+      app.use(ElementPlus).mount("#app");
+    </script>
+  </body>
+</html>

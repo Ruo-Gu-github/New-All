@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>测量图表</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+
+      .titlebar-close:hover {
+        background: #eee;
+      }
+
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .msg {
+        font-size: 12px;
+      }
+
+      .panel {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .panel-hd {
+        padding: 10px 12px;
+        background: #f5f7fa;
+        border-bottom: 1px solid #e4e7ed;
+        font-size: 13px;
+        font-weight: 600;
+        color: #303133;
+      }
+
+      .panel-bd {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ebeef5;
+        border-radius: 4px;
+        background: #fff;
+      }
+
+      .footer {
+        padding-top: 10px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid #409eff;
+        background: #409eff;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .btn:hover {
+        filter: brightness(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title" id="title">测量图表</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <div class="panel">
+        <div class="panel-hd" id="panel-title">加载中…</div>
+        <div class="panel-bd">
+          <div class="msg" id="msg">等待数据…</div>
+          <div style="flex: 1; min-height: 0">
+            <canvas id="canvas" width="800" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button class="btn" id="close-footer-btn">关闭</button>
+      </div>
+    </div>
+
+    <script>
+      function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v));
+      }
+
+      function setHiDpiCanvas(canvas) {
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width * dpr));
+        const h = Math.max(1, Math.floor(rect.height * dpr));
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
+        return { dpr, w, h };
+      }
+
+      function clearCanvas(canvas) {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const { w, h } = setHiDpiCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+      }
+
+      function resampleProfile(axis, values, targetN) {
+        const n = Math.min(axis.length, values.length);
+        if (n < 2) return { axis: [], values: [] };
+        const x0 = Number(axis[0]);
+        const x1 = Number(axis[n - 1]);
+        if (!isFinite(x0) || !isFinite(x1) || x1 <= x0) {
+          return { axis: axis.slice(0, n), values: values.slice(0, n) };
+        }
+        const outN = clamp(Number(targetN) || n, 2, 1024);
+        const outAxis = new Array(outN);
+        const outValues = new Array(outN);
+
+        let j = 0;
+        for (let i = 0; i < outN; i++) {
+          const x = x0 + ((x1 - x0) * i) / (outN - 1);
+          outAxis[i] = x;
+
+          while (j < n - 2 && Number(axis[j + 1]) < x) j++;
+          const ax0 = Number(axis[j]);
+          const ax1 = Number(axis[j + 1]);
+          const ay0 = Number(values[j]);
+          const ay1 = Number(values[j + 1]);
+          const t = ax1 > ax0 ? (x - ax0) / (ax1 - ax0) : 0;
+          outValues[i] = ay0 + (ay1 - ay0) * clamp(t, 0, 1);
+        }
+
+        return { axis: outAxis, values: outValues };
+      }
+
+      function smoothMovingAverage(values, windowSize) {
+        const n = values.length;
+        if (n < 3) return values.slice();
+        const w = clamp(Number(windowSize) || 5, 1, 31);
+        if (w <= 1) return values.slice();
+        const half = Math.floor(w / 2);
+        const out = new Array(n);
+        for (let i = 0; i < n; i++) {
+          let s = 0;
+          let c = 0;
+          const i0 = Math.max(0, i - half);
+          const i1 = Math.min(n - 1, i + half);
+          for (let k = i0; k <= i1; k++) {
+            const v = Number(values[k]);
+            if (!isFinite(v)) continue;
+            s += v;
+            c++;
+          }
+          out[i] = c ? s / c : Number(values[i]) || 0;
+        }
+        return out;
+      }
+
+      function computeHistogram(values, binCount) {
+        const vals = Array.isArray(values) ? values.map((v) => Number(v)) : [];
+        const clean = vals.filter((v) => isFinite(v));
+        if (clean.length === 0) return { bins: [], min: 0, max: 0 };
+        let min = clean[0];
+        let max = clean[0];
+        for (const v of clean) {
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+        if (max - min < 1e-6) {
+          max = min + 1;
+        }
+        const binsN = clamp(Number(binCount) || 128, 16, 256);
+        const bins = new Array(binsN).fill(0);
+        const inv = binsN / (max - min);
+        for (const v of clean) {
+          let idx = Math.floor((v - min) * inv);
+          idx = clamp(idx, 0, binsN - 1);
+          bins[idx]++;
+        }
+        return { bins, min, max };
+      }
+
+      function computeStats(values) {
+        const vals = Array.isArray(values) ? values.map((v) => Number(v)) : [];
+        const clean = vals.filter((v) => isFinite(v));
+        const n = clean.length;
+        if (n === 0) return { n: 0, min: 0, max: 0, mean: 0, std: 0 };
+        let min = clean[0];
+        let max = clean[0];
+        let sum = 0;
+        for (const v of clean) {
+          if (v < min) min = v;
+          if (v > max) max = v;
+          sum += v;
+        }
+        const mean = sum / n;
+        let varSum = 0;
+        for (const v of clean) {
+          const d = v - mean;
+          varSum += d * d;
+        }
+        const std = Math.sqrt(varSum / n);
+        return { n, min, max, mean, std };
+      }
+
+      function computeStatsFromHistogram(bins, minValue, maxValue) {
+        const data = Array.isArray(bins) ? bins.map((v) => Number(v) || 0) : [];
+        const nBins = data.length;
+        const minV = Number(minValue);
+        const maxV = Number(maxValue);
+        if (!nBins || !isFinite(minV) || !isFinite(maxV) || maxV <= minV) {
+          return { n: 0, min: minV || 0, max: maxV || 0, mean: 0, std: 0 };
+        }
+        let total = 0;
+        for (const c of data) total += c;
+        if (total <= 0) {
+          return { n: 0, min: minV, max: maxV, mean: 0, std: 0 };
+        }
+        const step = (maxV - minV) / nBins;
+        let sum = 0;
+        let sum2 = 0;
+        for (let i = 0; i < nBins; i++) {
+          const c = data[i];
+          if (!c) continue;
+          const x = minV + (i + 0.5) * step;
+          sum += x * c;
+          sum2 += x * x * c;
+        }
+        const mean = sum / total;
+        const var0 = sum2 / total - mean * mean;
+        const std = Math.sqrt(Math.max(0, var0));
+        return { n: total, min: minV, max: maxV, mean, std };
+      }
+
+      function drawLineChart(canvas, xArr, yArr, hoverIndex) {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const { w, h } = setHiDpiCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = 36;
+        const plotW = Math.max(1, w - pad * 2);
+        const plotH = Math.max(1, h - pad * 2);
+
+        const n = Math.min(xArr.length, yArr.length);
+        if (n < 2) {
+          ctx.fillStyle = "#909399";
+          ctx.font = "12px sans-serif";
+          ctx.fillText("暂无数据", pad, pad + 12);
+          return;
+        }
+
+        let xMin = xArr[0],
+          xMax = xArr[0];
+        let yMin = yArr[0],
+          yMax = yArr[0];
+        for (let i = 0; i < n; i++) {
+          const x = Number(xArr[i]);
+          const y = Number(yArr[i]);
+          if (!isFinite(x) || !isFinite(y)) continue;
+          if (x < xMin) xMin = x;
+          if (x > xMax) xMax = x;
+          if (y < yMin) yMin = y;
+          if (y > yMax) yMax = y;
+        }
+        if (xMax - xMin < 1e-6) xMax = xMin + 1;
+        if (yMax - yMin < 1e-6) yMax = yMin + 1;
+
+        const toX = (x) => pad + ((x - xMin) / (xMax - xMin)) * plotW;
+        const toY = (y) => pad + plotH - ((y - yMin) / (yMax - yMin)) * plotH;
+
+        // grid
+        ctx.strokeStyle = "#ebeef5";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const yy = pad + (plotH * i) / 4;
+          ctx.beginPath();
+          ctx.moveTo(pad, yy);
+          ctx.lineTo(pad + plotW, yy);
+          ctx.stroke();
+        }
+
+        // axes labels
+        ctx.fillStyle = "#606266";
+        ctx.font = "12px sans-serif";
+        ctx.fillText(`${yMax.toFixed(0)} HU`, 8, pad + 10);
+        ctx.fillText(`${yMin.toFixed(0)} HU`, 8, pad + plotH);
+        ctx.fillText(`${xMax.toFixed(1)} mm`, pad + plotW - 54, h - 10);
+
+        // line
+        ctx.strokeStyle = "#409eff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(toX(xArr[0]), toY(yArr[0]));
+        for (let i = 1; i < n; i++) {
+          ctx.lineTo(toX(xArr[i]), toY(yArr[i]));
+        }
+        ctx.stroke();
+
+        const hi = Number.isFinite(hoverIndex) ? hoverIndex : -1;
+        if (hi >= 0 && hi < n) {
+          const hx = toX(xArr[hi]);
+          const hy = toY(yArr[hi]);
+          ctx.strokeStyle = "#c0c4cc";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(hx, pad);
+          ctx.lineTo(hx, pad + plotH);
+          ctx.stroke();
+
+          ctx.fillStyle = "#409eff";
+          ctx.beginPath();
+          ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawHistogram(canvas, bins, minValue, maxValue) {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const { w, h } = setHiDpiCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = 36;
+        const plotW = Math.max(1, w - pad * 2);
+        const plotH = Math.max(1, h - pad * 2);
+
+        const data = Array.isArray(bins) ? bins : [];
+        if (data.length === 0) {
+          ctx.fillStyle = "#909399";
+          ctx.font = "12px sans-serif";
+          ctx.fillText("暂无数据", pad, pad + 12);
+          return;
+        }
+
+        let maxBin = 0;
+        for (const v of data) maxBin = Math.max(maxBin, Number(v) || 0);
+        if (maxBin <= 0) maxBin = 1;
+
+        // grid
+        ctx.strokeStyle = "#ebeef5";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const yy = pad + (plotH * i) / 4;
+          ctx.beginPath();
+          ctx.moveTo(pad, yy);
+          ctx.lineTo(pad + plotW, yy);
+          ctx.stroke();
+        }
+
+        const barW = plotW / data.length;
+        ctx.fillStyle = "#67c23a";
+        for (let i = 0; i < data.length; i++) {
+          const v = (Number(data[i]) || 0) / maxBin;
+          const bh = v * plotH;
+          const x = pad + i * barW;
+          const y = pad + plotH - bh;
+          ctx.fillRect(x, y, Math.max(1, barW - 1), bh);
+        }
+
+        ctx.fillStyle = "#606266";
+        ctx.font = "12px sans-serif";
+        const minT = isFinite(minValue) ? Number(minValue).toFixed(0) : "";
+        const maxT = isFinite(maxValue) ? Number(maxValue).toFixed(0) : "";
+        ctx.fillText(`${minT} ~ ${maxT} HU`, pad, h - 10);
+      }
+
+      function toolName(t) {
+        switch (t) {
+          case 1:
+            return "直线";
+          case 2:
+            return "角度";
+          case 3:
+            return "方形";
+          case 4:
+            return "圆形";
+          case 5:
+            return "贝塞尔";
+          case 6:
+            return "任意曲线";
+          default:
+            return String(t);
+        }
+      }
+
+      const close = () =>
+        window.electronAPI.send("dialog:close", { action: "close" });
+
+      document.getElementById("close-btn").addEventListener("click", close);
+      document
+        .getElementById("close-footer-btn")
+        .addEventListener("click", close);
+
+      const canvas = document.getElementById("canvas");
+      const msgEl = document.getElementById("msg");
+      const titleEl = document.getElementById("title");
+      const panelTitleEl = document.getElementById("panel-title");
+
+      let current = {
+        chart: "profile",
+        sessionId: "",
+        measurementId: 0,
+        toolType: 0,
+      };
+
+      let currentProfile = { axis: [], values: [] };
+      let currentHist = null;
+      let hoverIndex = -1;
+
+      function redraw() {
+        if (current.chart === "profile") {
+          drawLineChart(
+            canvas,
+            currentProfile.axis,
+            currentProfile.values,
+            hoverIndex
+          );
+        } else {
+          if (currentHist && Array.isArray(currentHist.bins)) {
+            drawHistogram(
+              canvas,
+              currentHist.bins,
+              currentHist.min,
+              currentHist.max
+            );
+          } else {
+            const { bins, min, max } = computeHistogram(
+              currentProfile.values,
+              128
+            );
+            drawHistogram(canvas, bins, min, max);
+          }
+        }
+      }
+
+      async function loadChart(params) {
+        current = {
+          chart: params?.chart === "hist" ? "hist" : "profile",
+          sessionId: String(params?.sessionId ?? ""),
+          measurementId: Number(params?.measurementId ?? 0),
+          toolType: Number(params?.toolType ?? 0),
+        };
+
+        const isLineTool =
+          current.toolType === 1 ||
+          current.toolType === 5 ||
+          current.toolType === 6;
+        const isAreaTool = current.toolType === 3 || current.toolType === 4;
+
+        const head =
+          current.chart === "hist"
+            ? isAreaTool
+              ? "直方图（区域内 HU 分布）"
+              : "直方图（沿测量线 HU 分布）"
+            : "折线图（沿测量线采样）";
+
+        titleEl.textContent = "测量图表";
+        panelTitleEl.textContent = `${head}  ID=${
+          current.measurementId
+        }  类型=${toolName(current.toolType)}`;
+
+        clearCanvas(canvas);
+        msgEl.textContent = "加载中…";
+        hoverIndex = -1;
+        currentProfile = { axis: [], values: [] };
+        currentHist = null;
+
+        if (current.chart === "profile") {
+          if (!isLineTool) {
+            msgEl.textContent = "该类型暂无折线图数据";
+            return;
+          }
+          if (!window.visualizationApi?.getMeasurementProfile) {
+            msgEl.textContent = "getMeasurementProfile 不可用";
+            return;
+          }
+        } else {
+          // histogram
+          if (isLineTool) {
+            if (!window.visualizationApi?.getMeasurementProfile) {
+              msgEl.textContent = "getMeasurementProfile 不可用";
+              return;
+            }
+          } else if (isAreaTool) {
+            if (!window.visualizationApi?.getMeasurementRegionHistogram) {
+              msgEl.textContent = "getMeasurementRegionHistogram 不可用";
+              return;
+            }
+          } else {
+            msgEl.textContent = "该类型暂无直方图数据";
+            return;
+          }
+        }
+
+        try {
+          // Area histogram path
+          if (current.chart === "hist" && isAreaTool) {
+            const res =
+              await window.visualizationApi.getMeasurementRegionHistogram(
+                current.sessionId,
+                current.measurementId
+              );
+            if (!res || res.success === false) {
+              msgEl.textContent = "加载失败";
+              return;
+            }
+            const bins0 = Array.isArray(res?.data) ? res.data : [];
+            const minV = Number(res?.minValue ?? 0);
+            const maxV = Number(res?.maxValue ?? 0);
+            currentHist = { bins: bins0, min: minV, max: maxV };
+
+            const st = computeStatsFromHistogram(bins0, minV, maxV);
+            msgEl.textContent = `像素数：${st.n}  HU：${st.min.toFixed(
+              0
+            )} ~ ${st.max.toFixed(0)}  均值：${st.mean.toFixed(
+              1
+            )}  标准差：${st.std.toFixed(1)}`;
+            redraw();
+            return;
+          }
+
+          // Line profile path (profile or hist)
+          const res = await window.visualizationApi.getMeasurementProfile(
+            current.sessionId,
+            current.measurementId,
+            512
+          );
+          if (res && res.success === false) {
+            msgEl.textContent = "加载失败";
+            return;
+          }
+          const axis0 = Array.isArray(res?.axis) ? res.axis : [];
+          const values0 = Array.isArray(res?.values) ? res.values : [];
+
+          const r = resampleProfile(axis0, values0, 512);
+          const smoothVals = smoothMovingAverage(r.values, 5);
+          currentProfile = { axis: r.axis, values: smoothVals };
+
+          if (currentProfile.axis.length < 2) {
+            msgEl.textContent = "暂无数据";
+            return;
+          }
+
+          const st = computeStats(currentProfile.values);
+          msgEl.textContent = `点数：${
+            currentProfile.axis.length
+          }（已平滑）  HU：${st.min.toFixed(0)} ~ ${st.max.toFixed(
+            0
+          )}  均值：${st.mean.toFixed(1)}  标准差：${st.std.toFixed(1)}`;
+          redraw();
+        } catch (e) {
+          console.error("[dialog-measurement-chart] load failed:", e);
+          msgEl.textContent = "加载失败";
+        }
+      }
+
+      canvas.addEventListener("mousemove", (ev) => {
+        if (current.chart !== "profile") return;
+        if (!currentProfile.axis || currentProfile.axis.length < 2) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const xCss = ev.clientX - rect.left;
+        const ratio = rect.width > 1 ? xCss / rect.width : 0;
+        const idx = Math.round(
+          clamp(ratio, 0, 1) * (currentProfile.axis.length - 1)
+        );
+        hoverIndex = clamp(idx, 0, currentProfile.axis.length - 1);
+        redraw();
+
+        const d = Number(currentProfile.axis[hoverIndex]);
+        const hu = Number(currentProfile.values[hoverIndex]);
+        if (isFinite(d) && isFinite(hu)) {
+          msgEl.textContent = `点数：${
+            currentProfile.axis.length
+          }（已平滑）  距离：${d.toFixed(1)} mm  HU：${hu.toFixed(0)}`;
+        }
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        if (current.chart !== "profile") return;
+        hoverIndex = -1;
+        redraw();
+        if (currentProfile.axis.length >= 2) {
+          msgEl.textContent = `点数：${currentProfile.axis.length}（已平滑）`;
+        }
+      });
+
+      window.electronAPI.on("dialog:init-data", (params) => loadChart(params));
+      window.electronAPI.send("dialog:ready");
+
+      setTimeout(() => {
+        if (panelTitleEl.textContent === "加载中…") {
+          // If init-data never arrives, at least clear the canvas.
+          clearCanvas(canvas);
+          msgEl.textContent = "等待数据…";
+        }
+      }, 300);
+    </script>
+  </body>
+</html>

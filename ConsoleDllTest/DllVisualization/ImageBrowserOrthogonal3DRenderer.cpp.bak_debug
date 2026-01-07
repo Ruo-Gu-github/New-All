@@ -1,0 +1,1649 @@
+#include "pch.h"
+
+#include "ImageBrowserOrthogonal3DRenderer.h"
+#include "VisualizationApi.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <unordered_map>
+
+#include <GL/glew.h>
+
+namespace {
+struct TriPlanarTextures {
+    GLuint texAxial = 0;
+    GLuint texCoronal = 0;
+    GLuint texSagittal = 0;
+};
+
+void EnsureTex(GLuint& texId) {
+    if (!texId) glGenTextures(1, &texId);
+}
+
+void UploadGray8(GLuint texId, int w, int h, const void* data) {
+    if (!texId || w <= 0 || h <= 0 || !data) return;
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w, h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
+}
+
+void Mat4_IdentityLocal(float out[16]) {
+    static const float I[16] = {
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    };
+    std::memcpy(out, I, sizeof(float) * 16);
+}
+
+void Mat4_FromEulerZYXDegLocal(float out[16], float xDeg, float yDeg, float zDeg) {
+    const float rx = xDeg * 3.14159265358979323846f / 180.0f;
+    const float ry = yDeg * 3.14159265358979323846f / 180.0f;
+    const float rz = zDeg * 3.14159265358979323846f / 180.0f;
+
+    const float cx = std::cos(rx), sx = std::sin(rx);
+    const float cy = std::cos(ry), sy = std::sin(ry);
+    const float cz = std::cos(rz), sz = std::sin(rz);
+
+    out[0] = cz * cy;
+    out[1] = sz * cy;
+    out[2] = -sy;
+    out[3] = 0.0f;
+
+    out[4] = cz * sy * sx - sz * cx;
+    out[5] = sz * sy * sx + cz * cx;
+    out[6] = cy * sx;
+    out[7] = 0.0f;
+
+    out[8] = cz * sy * cx + sz * sx;
+    out[9] = sz * sy * cx - cz * sx;
+    out[10] = cy * cx;
+    out[11] = 0.0f;
+
+    out[12] = 0.0f;
+    out[13] = 0.0f;
+    out[14] = 0.0f;
+    out[15] = 1.0f;
+}
+
+void Rot3Local(const float m[16], float x, float y, float z, float& ox, float& oy, float& oz) {
+    ox = m[0] * x + m[4] * y + m[8] * z;
+    oy = m[1] * x + m[5] * y + m[9] * z;
+    oz = m[2] * x + m[6] * y + m[10] * z;
+}
+
+void GetViewRotMat(const float* inMat, bool inited, float outMat[16]) {
+    if (inited && inMat) {
+        std::memcpy(outMat, inMat, sizeof(float) * 16);
+    } else {
+        Mat4_IdentityLocal(outMat);
+    }
+}
+
+void GetVolumeDimsFromSlices(int axW, int axH, int coW, int coH, int saW, int saH, int& outW, int& outH, int& outD) {
+    outW = std::max(1, axW);
+    outH = std::max(1, axH);
+    outD = std::max(1, std::max(coH, saH));
+}
+
+float NiceNumber(float value) {
+    if (value <= 0.0f || !std::isfinite(value)) return 1.0f;
+    const float exp10 = std::pow(10.0f, std::floor(std::log10(value)));
+    const float f = value / exp10;
+    float nice;
+    if (f < 1.5f) nice = 1.0f;
+    else if (f < 3.5f) nice = 2.0f;
+    else if (f < 7.5f) nice = 5.0f;
+    else nice = 10.0f;
+    return nice * exp10;
+}
+
+bool TryReadIntFromFile(const char* path, int& outValue) {
+    outValue = 0;
+    FILE* f = nullptr;
+    fopen_s(&f, path, "r");
+    if (!f) return false;
+    int v = 0;
+    const int ok = fscanf_s(f, "%d", &v);
+    fclose(f);
+    if (ok != 1) return false;
+    outValue = v;
+    return true;
+}
+
+bool TryReadDebugStage(int& outStage) {
+    outStage = -1;
+
+#ifdef _WIN32
+    // Prefer a stage file next to the loaded DllVisualization.dll.
+    // This avoids relying on absolute paths and makes it easy to edit in the workspace.
+    HMODULE mod = nullptr;
+    if (GetModuleHandleExA(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            reinterpret_cast<LPCSTR>(&TryReadDebugStage),
+            &mod)) {
+        char dllPath[MAX_PATH] = {};
+        const DWORD len = GetModuleFileNameA(mod, dllPath, MAX_PATH);
+        if (len > 0 && len < MAX_PATH) {
+            // Replace filename with 3d_stage.txt
+            for (int i = (int)len - 1; i >= 0; --i) {
+                if (dllPath[i] == '\\' || dllPath[i] == '/') {
+                    dllPath[i + 1] = '\0';
+                    break;
+                }
+            }
+            char stagePath[MAX_PATH] = {};
+            strcpy_s(stagePath, dllPath);
+            strcat_s(stagePath, "3d_stage.txt");
+
+            if (TryReadIntFromFile(stagePath, outStage)) {
+                FILE* lf = nullptr;
+                fopen_s(&lf, "D:\\3d_render_debug.log", "a");
+                if (lf) {
+                    fprintf(lf, "[3D][STAGE] stage loaded from %s => %d\n", stagePath, outStage);
+                    fclose(lf);
+                }
+                return true;
+            }
+        }
+    }
+#endif
+
+    // Fallback: legacy absolute path
+    if (TryReadIntFromFile("D:\\3d_stage.txt", outStage)) {
+        FILE* lf = nullptr;
+        fopen_s(&lf, "D:\\3d_render_debug.log", "a");
+        if (lf) {
+            fprintf(lf, "[3D][STAGE] stage loaded from D:\\3d_stage.txt => %d\n", outStage);
+            fclose(lf);
+        }
+        return true;
+    }
+    return false;
+}
+
+void LogMat4(FILE* logFile, const char* name, const float m[16]) {
+    if (!logFile || !name || !m) return;
+    fprintf(logFile, "%s:\n", name);
+    fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[0], m[4], m[8], m[12]);
+    fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[1], m[5], m[9], m[13]);
+    fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[2], m[6], m[10], m[14]);
+    fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[3], m[7], m[11], m[15]);
+}
+
+void LogGLStateAndMatrices(const char* tag) {
+    FILE* logFile = nullptr;
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (!logFile) return;
+
+    fprintf(logFile, "[3D][STAGE] %s\n", tag ? tag : "(null)");
+
+    GLboolean depthTest = GL_FALSE;
+    GLboolean blend = GL_FALSE;
+    GLboolean texture2D = GL_FALSE;
+    GLboolean cullFace = GL_FALSE;
+    GLboolean lighting = GL_FALSE;
+    GLboolean depthWrite = GL_TRUE;
+    glGetBooleanv(GL_DEPTH_TEST, &depthTest);
+    glGetBooleanv(GL_BLEND, &blend);
+    glGetBooleanv(GL_TEXTURE_2D, &texture2D);
+    glGetBooleanv(GL_CULL_FACE, &cullFace);
+    glGetBooleanv(GL_LIGHTING, &lighting);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWrite);
+
+    fprintf(logFile, "  GL_DEPTH_TEST=%d GL_BLEND=%d GL_TEXTURE_2D=%d GL_CULL_FACE=%d GL_LIGHTING=%d GL_DEPTH_WRITEMASK=%d\n",
+            depthTest, blend, texture2D, cullFace, lighting, depthWrite);
+
+    float proj[16];
+    float mv[16];
+    glGetFloatv(GL_PROJECTION_MATRIX, proj);
+    glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+    LogMat4(logFile, "  PROJECTION", proj);
+    LogMat4(logFile, "  MODELVIEW", mv);
+
+    const GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        fprintf(logFile, "  glGetError()=0x%X\n", (unsigned)err);
+    }
+
+    fclose(logFile);
+}
+
+void DrawTexturedQuad_ScreenSpace(GLuint tex, int winWidth, int winHeight, float cx, float cy, float w, float h) {
+    if (!tex || winWidth <= 0 || winHeight <= 0) return;
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0.0, (double)winWidth, 0.0, (double)winHeight, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_BLEND);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+    const float x0 = cx - w * 0.5f;
+    const float x1 = cx + w * 0.5f;
+    const float y0 = cy - h * 0.5f;
+    const float y1 = cy + h * 0.5f;
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(x0, y0, 0.0f);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(x0, y1, 0.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(x1, y1, 0.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(x1, y0, 0.0f);
+    glEnd();
+}
+} // namespace
+
+NativeResult ImageBrowserOrthogonal3DRenderer::Render(
+    APRHandle axial,
+    APRHandle coronal,
+    APRHandle sagittal,
+    int winWidth,
+    int winHeight,
+    const float viewRotMat[16],
+    bool viewRotMatInitialized,
+    float viewZoom,
+    float viewPanX,
+    float viewPanY,
+    bool cropBoxVisible
+) {
+    // 写日志到文件，确保能看到
+    FILE* logFile = nullptr;
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "\n========== [3D Render Start] ==========\n");
+        fprintf(logFile, "[3D] Render called: axial=%p coronal=%p sagittal=%p win=%dx%d\n", axial, coronal, sagittal, winWidth, winHeight);
+        fprintf(logFile, "[3D] viewRotMatInitialized=%d viewZoom=%.3f viewPan=(%.3f,%.3f) cropBoxVisible=%d\n",
+                viewRotMatInitialized, viewZoom, viewPanX, viewPanY, cropBoxVisible);
+        fclose(logFile);
+    }
+    printf("[3D] Render called: axial=%p coronal=%p sagittal=%p win=%dx%d\n", axial, coronal, sagittal, winWidth, winHeight);
+    if (!axial || !coronal || !sagittal) {
+        printf("[3D] ERROR: Invalid APR handles\n");
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "[3D] ERROR: Invalid APR handles (axial=%p coronal=%p sagittal=%p)\n", axial, coronal, sagittal);
+            fclose(logFile);
+        }
+        return NATIVE_E_INVALID_ARGUMENT;
+    }
+    if (winWidth <= 0 || winHeight <= 0) {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "[3D] SKIP: Invalid window size %dx%d\n", winWidth, winHeight);
+            fclose(logFile);
+        }
+        return NATIVE_OK;
+    }
+
+    // 只更新displayBuffer，不进行2D渲染
+    printf("[3D] Calling APR_UpdateSlice for all 3 handles...\n");
+    NativeResult r1 = APR_UpdateSlice(axial);
+    NativeResult r2 = APR_UpdateSlice(coronal);
+    NativeResult r3 = APR_UpdateSlice(sagittal);
+    printf("[3D] APR_UpdateSlice results: axial=%d coronal=%d sagittal=%d\n", r1, r2, r3);
+
+    int axW = 0, axH = 0;
+    int coW = 0, coH = 0;
+    int saW = 0, saH = 0;
+
+    const int axDir = APR_GetSliceDirection(axial);
+    const int coDir = APR_GetSliceDirection(coronal);
+    const int saDir = APR_GetSliceDirection(sagittal);
+
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Slice directions: axDir=%d coDir=%d saDir=%d\n", axDir, coDir, saDir);
+        fclose(logFile);
+    }
+
+    void* axSlice = APR_GetSlice(axial, axDir, &axW, &axH);
+    void* coSlice = APR_GetSlice(coronal, coDir, &coW, &coH);
+    void* saSlice = APR_GetSlice(sagittal, saDir, &saW, &saH);
+    
+    // 写详细日志到文件
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] APR_GetSlice results:\n");
+        fprintf(logFile, "  axSlice=%p (%dx%d) valid=%d\n", axSlice, axW, axH, (axSlice && axW > 0 && axH > 0));
+        fprintf(logFile, "  coSlice=%p (%dx%d) valid=%d\n", coSlice, coW, coH, (coSlice && coW > 0 && coH > 0));
+        fprintf(logFile, "  saSlice=%p (%dx%d) valid=%d\n", saSlice, saW, saH, (saSlice && saW > 0 && saH > 0));
+        fclose(logFile);
+    }
+    printf("[3D] APR_GetSlice: axSlice=%p (%dx%d), coSlice=%p (%dx%d), saSlice=%p (%dx%d)\n",
+           axSlice, axW, axH, coSlice, coW, coH, saSlice, saW, saH);
+
+    if (!axSlice || !coSlice || !saSlice) {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "[3D] ERROR: One or more slices are NULL! Cannot render 3D view.\n");
+            fclose(logFile);
+        }
+    }
+
+    int volW = 1, volH = 1, volD = 1;
+    GetVolumeDimsFromSlices(axW, axH, coW, coH, saW, saH, volW, volH, volD);
+    printf("[3D] Volume dims: %dx%dx%d\n", volW, volH, volD);
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Calculated volume dimensions: %dx%dx%d\n", volW, volH, volD);
+        fclose(logFile);
+    }
+
+    float axCenterX = 0.0f, axCenterY = 0.0f, axCenterZ = 0.0f;
+    float coCenterX = 0.0f, coCenterY = 0.0f, coCenterZ = 0.0f;
+    float saCenterX = 0.0f, saCenterY = 0.0f, saCenterZ = 0.0f;
+    APR_GetCenter(axial, &axCenterX, &axCenterY, &axCenterZ);
+    APR_GetCenter(coronal, &coCenterX, &coCenterY, &coCenterZ);
+    APR_GetCenter(sagittal, &saCenterX, &saCenterY, &saCenterZ);
+
+    // All APR views in the same tab/session are linked via APR_SetCenter/APR_LinkCenter.
+    // Use a single authoritative volume-space point to place the 3D orthogonal axes.
+    const float centerX = axCenterX;
+    const float centerY = axCenterY;
+    const float centerZ = axCenterZ;
+
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Centers: ax=(%.2f,%.2f,%.2f) co=(%.2f,%.2f,%.2f) sa=(%.2f,%.2f,%.2f)\n",
+                axCenterX, axCenterY, axCenterZ,
+                coCenterX, coCenterY, coCenterZ,
+                saCenterX, saCenterY, saCenterZ);
+        fprintf(logFile, "[3D] Chosen center: (%.2f,%.2f,%.2f)\n", centerX, centerY, centerZ);
+        fclose(logFile);
+    }
+
+    float spacingX = 1.0f, spacingY = 1.0f, spacingZ = 1.0f;
+    APR_GetCroppedVolumeSpacing(&spacingX, &spacingY, &spacingZ);
+
+    float rotVol[16];
+    {
+        float rx = 0.0f, ry = 0.0f, rz = 0.0f;
+        APR_GetRotation(axial, &rx, &ry, &rz);
+        Mat4_FromEulerZYXDegLocal(rotVol, rx, ry, rz);
+    }
+
+    float camRot[16];
+    GetViewRotMat(viewRotMat, viewRotMatInitialized, camRot);
+
+    static std::unordered_map<void*, TriPlanarTextures> s_triTex;
+#ifdef _WIN32
+    void* ctxKey = reinterpret_cast<void*>(wglGetCurrentContext());
+#else
+    void* ctxKey = reinterpret_cast<void*>(glfwGetCurrentContext());
+#endif
+    if (!ctxKey) ctxKey = reinterpret_cast<void*>(1);
+
+    TriPlanarTextures& tri = s_triTex[ctxKey];
+    EnsureTex(tri.texAxial);
+    EnsureTex(tri.texCoronal);
+    EnsureTex(tri.texSagittal);
+
+    int uploadCount = 0;
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Uploading textures to OpenGL...\n");
+        fprintf(logFile, "  tri.texAxial=%u tri.texCoronal=%u tri.texSagittal=%u\n",
+                tri.texAxial, tri.texCoronal, tri.texSagittal);
+        fclose(logFile);
+    }
+    
+    if (axSlice && axW > 0 && axH > 0) {
+        // 检查数据是否全0
+        const uint8_t* axData = static_cast<const uint8_t*>(axSlice);
+        int allZero = 1;
+        for (int i = 0; i < (std::min)(100, axW * axH); i++) {
+            if (axData[i] != 0) {
+                allZero = 0;
+                break;
+            }
+        }
+        int idx1 = axW * axH / 4;
+        int idx2 = axW * axH / 2;
+        int idx3 = axW * axH - 1;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Axial slice check: first 100 pixels allZero=%d, sample values: [%d,%d,%d,%d,%d]\n",
+                    allZero, (int)axData[0], (int)axData[1], (int)axData[idx1], (int)axData[idx2], (int)axData[idx3]);
+            fclose(logFile);
+        }
+        
+        UploadGray8(tri.texAxial, axW, axH, axSlice);
+        uploadCount++;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Uploaded axial texture: %dx%d to GL texture %u\n", axW, axH, tri.texAxial);
+            fclose(logFile);
+        }
+    } else {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  SKIP axial: axSlice=%p axW=%d axH=%d\n", axSlice, axW, axH);
+            fclose(logFile);
+        }
+    }
+    
+    if (coSlice && coW > 0 && coH > 0) {
+        UploadGray8(tri.texCoronal, coW, coH, coSlice);
+        uploadCount++;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Uploaded coronal texture: %dx%d to GL texture %u\n", coW, coH, tri.texCoronal);
+            fclose(logFile);
+        }
+    } else {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  SKIP coronal: coSlice=%p coW=%d coH=%d\n", coSlice, coW, coH);
+            fclose(logFile);
+        }
+    }
+    
+    if (saSlice && saW > 0 && saH > 0) {
+        UploadGray8(tri.texSagittal, saW, saH, saSlice);
+        uploadCount++;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Uploaded sagittal texture: %dx%d to GL texture %u\n", saW, saH, tri.texSagittal);
+            fclose(logFile);
+        }
+    } else {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  SKIP sagittal: saSlice=%p saW=%d saH=%d\n", saSlice, saW, saH);
+            fclose(logFile);
+        }
+    }
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Successfully uploaded %d textures\n", uploadCount);
+        fclose(logFile);
+    }
+    
+    // OpenGL状态检查
+    GLint depthBits = 0, viewport[4];
+    glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] OpenGL state before render:\n");
+        fprintf(logFile, "  Depth buffer bits: %d\n", depthBits);
+        fprintf(logFile, "  Current viewport: (%d, %d, %d, %d)\n", viewport[0], viewport[1], viewport[2], viewport[3]);
+        
+        GLboolean depthTest, depthWrite, texture2D;
+        glGetBooleanv(GL_DEPTH_TEST, &depthTest);
+        glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWrite);
+        glGetBooleanv(GL_TEXTURE_2D, &texture2D);
+        fprintf(logFile, "  GL_DEPTH_TEST=%d GL_DEPTH_WRITEMASK=%d GL_TEXTURE_2D=%d\n", 
+                depthTest, depthWrite, texture2D);
+        fclose(logFile);
+    }
+
+    // Some upstream paths leave depth writes or scissor enabled/disabled.
+    // If GL_DEPTH_WRITEMASK is false, glClear(GL_DEPTH_BUFFER_BIT) will NOT clear the depth buffer,
+    // which makes depth-tested slices disappear while depth-disabled lines still show.
+    const GLboolean scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
+    GLint scissorBox[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_SCISSOR_BOX, scissorBox);
+    glDisable(GL_SCISSOR_TEST);
+    glDepthMask(GL_TRUE);
+    glClearDepth(1.0);
+
+    glViewport(0, 0, winWidth, winHeight);
+    // 黑色背景
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    auto restoreScissor = [&]() {
+        if (scissorWasEnabled) {
+            glEnable(GL_SCISSOR_TEST);
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
+        glScissor(scissorBox[0], scissorBox[1], scissorBox[2], scissorBox[3]);
+    };
+
+    // ====== 分阶段矩阵排查（通过 D:\3d_stage.txt 控制）======
+    // 说明：如果文件存在，就按阶段渲染；不存在则走原来的 3D 简化路径。
+    // stage 建议：
+    //   0 = 仅屏幕空间2D贴图（已验证可显示）
+    //   1 = 引入 NDC 正交投影（-1..1）+ MV=I，只画 axial 在 z=0
+    //   2 = 仍用 NDC 投影，但用 posX/posY/posZ 计算后的 axial（只引入“归一化坐标/中心”）
+    //   3 = 使用当前 3D 的 glOrtho(aspect*orthoSize)，MV=I，只画 axial
+    //   4 = 在 stage3 基础上加 pan 平移
+    //   5 = 在 stage4 基础上加 camRot 旋转
+    //   6 = 在 stage5 基础上启用深度并画 3 张切片
+    int debugStage = -1;
+    const bool hasDebugStage = TryReadDebugStage(debugStage);
+    if (hasDebugStage) {
+        FILE* lf = nullptr;
+        fopen_s(&lf, "D:\\3d_render_debug.log", "a");
+        if (lf) {
+            fprintf(lf, "[3D][STAGE] stage=%d\n", debugStage);
+            fclose(lf);
+        }
+
+        // 计算归一化坐标（供 stage 2+ 使用）
+        const int maxDim = std::max(volW, std::max(volH, volD));
+        const float normW = (float)volW / (float)maxDim;
+        const float normH = (float)volH / (float)maxDim;
+        const float normD = (float)volD / (float)maxDim;
+
+        const float denomW = (float)std::max(1, volW - 1);
+        const float denomH = (float)std::max(1, volH - 1);
+        const float denomD = (float)std::max(1, volD - 1);
+
+        // APR_Render 在旋转模式下是在“virtual 坐标系”渲染切片：
+        //   virtual = C + R^T * (real - C)
+        // 2D 里你看到的定位点位置（例如右下角）对应的是 virtualCenter 在输出切片上的位置。
+        // 因此 3D 正交视图的轴交点也必须使用 virtualCenter。
+        float aprRotMat[16] = { 1,0,0,0,  0,1,0,0,  0,0,1,0,  0,0,0,1 };
+        APR_GetRotationMatrix(axial, aprRotMat);
+
+        const float r00 = aprRotMat[0];
+        const float r01 = aprRotMat[4];
+        const float r02 = aprRotMat[8];
+        const float r10 = aprRotMat[1];
+        const float r11 = aprRotMat[5];
+        const float r12 = aprRotMat[9];
+        const float r20 = aprRotMat[2];
+        const float r21 = aprRotMat[6];
+        const float r22 = aprRotMat[10];
+
+        const float pivotX = (float)volW * 0.5f;
+        const float pivotY = (float)volH * 0.5f;
+        const float pivotZ = (float)volD * 0.5f;
+
+        const float dx = centerX - pivotX;
+        const float dy = centerY - pivotY;
+        const float dz = centerZ - pivotZ;
+
+        const float virtualCenterX = pivotX + (r00 * dx + r10 * dy + r20 * dz);
+        const float virtualCenterY = pivotY + (r01 * dx + r11 * dy + r21 * dz);
+        const float virtualCenterZ = pivotZ + (r02 * dx + r12 * dy + r22 * dz);
+
+        const float posX = ((virtualCenterX / denomW) - 0.5f) * normW;
+        const float posY = ((virtualCenterY / denomH) - 0.5f) * normH;
+        const float posZ = ((virtualCenterZ / denomD) - 0.5f) * normD;
+
+        const float hw = normW * 0.5f;
+        const float hh = normH * 0.5f;
+        const float hd = normD * 0.5f;
+
+        // stage0：屏幕空间 2D 贴图（最接近“直接渲染切面”）
+        if (debugStage <= 0) {
+            LogGLStateAndMatrices("stage0: before draw (screen space)");
+            const float size = (float)(std::min)(winWidth, winHeight) * 0.8f;
+            DrawTexturedQuad_ScreenSpace(tri.texAxial, winWidth, winHeight, winWidth * 0.5f, winHeight * 0.5f, size, size);
+            LogGLStateAndMatrices("stage0: after draw");
+            restoreScissor();
+            return NATIVE_OK;
+        }
+
+        // stage1~：开始引入矩阵
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+        // Projection
+        const float aspect = (float)winWidth / (float)winHeight;
+        const float zoom = viewZoom > 0.1f ? viewZoom : 1.0f;
+        const float orthoSize = 0.8f / zoom;
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        if (debugStage == 1 || debugStage == 2) {
+            glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+        } else {
+            glOrtho(-aspect * orthoSize, aspect * orthoSize, -orthoSize, orthoSize, -10.0, 10.0);
+        }
+
+        // ModelView
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        if (debugStage >= 4) {
+            glTranslatef(viewPanX * 0.001f, viewPanY * 0.001f, 0.0f);
+        }
+        if (debugStage >= 5) {
+            glMultMatrixf(camRot);
+        }
+
+        LogGLStateAndMatrices("stage1+: after set matrices");
+
+        int slicesDrawn = 0;
+
+        // stage6：目标最终效果（不透明 + 深度测试）
+        // stage7：诊断模式（半透明 + 无深度），用于肉眼确认三张都在
+        const bool debugTransparentNoDepth = (debugStage >= 7);
+        if (debugStage >= 6) {
+            if (debugTransparentNoDepth) {
+                glDisable(GL_DEPTH_TEST);
+                glDepthMask(GL_FALSE);
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_LEQUAL);
+                glDepthMask(GL_TRUE);
+                glDisable(GL_BLEND);
+            }
+        } else {
+            glDisable(GL_BLEND);
+            glDepthMask(GL_TRUE);
+        }
+
+        const float zAx = (debugStage >= 2) ? posZ : 0.0f;
+        const float x0 = -hw;
+        const float x1 = hw;
+        const float y0 = -hh;
+        const float y1 = hh;
+        const float a = (debugTransparentNoDepth) ? 0.70f : 1.0f;
+
+        // 只画 axial（1~5） 或画三张（6+）
+        if (tri.texAxial && axSlice) {
+            glBindTexture(GL_TEXTURE_2D, tri.texAxial);
+            if (debugTransparentNoDepth) {
+                glColor4f(1.00f, 0.85f, 0.85f, a);
+            } else {
+                glColor4f(1.0f, 1.0f, 1.0f, a);
+            }
+            glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(x0, y0, zAx);
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(x0, y1, zAx);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(x1, y1, zAx);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(x1, y0, zAx);
+            glEnd();
+            slicesDrawn++;
+
+            FILE* lf2 = nullptr;
+            fopen_s(&lf2, "D:\\3d_render_debug.log", "a");
+            if (lf2) {
+                fprintf(lf2, "[3D][STAGE] drew AXIAL (a=%.2f)\n", a);
+                fclose(lf2);
+            }
+        }
+
+        if (debugStage >= 6) {
+            if (tri.texCoronal && coSlice) {
+                glBindTexture(GL_TEXTURE_2D, tri.texCoronal);
+                if (debugTransparentNoDepth) {
+                    glColor4f(0.85f, 1.00f, 0.85f, a);
+                } else {
+                    glColor4f(1.0f, 1.0f, 1.0f, a);
+                }
+                glBegin(GL_QUADS);
+                glTexCoord2f(0.0f, 1.0f); glVertex3f(-hw, posY, -hd);
+                glTexCoord2f(1.0f, 1.0f); glVertex3f(hw, posY, -hd);
+                glTexCoord2f(1.0f, 0.0f); glVertex3f(hw, posY, hd);
+                glTexCoord2f(0.0f, 0.0f); glVertex3f(-hw, posY, hd);
+                glEnd();
+                slicesDrawn++;
+
+                FILE* lf2 = nullptr;
+                fopen_s(&lf2, "D:\\3d_render_debug.log", "a");
+                if (lf2) {
+                    fprintf(lf2, "[3D][STAGE] drew CORONAL (a=%.2f)\n", a);
+                    fclose(lf2);
+                }
+            }
+            if (tri.texSagittal && saSlice) {
+                glBindTexture(GL_TEXTURE_2D, tri.texSagittal);
+                if (debugTransparentNoDepth) {
+                    glColor4f(0.85f, 0.85f, 1.00f, a);
+                } else {
+                    glColor4f(1.0f, 1.0f, 1.0f, a);
+                }
+                glBegin(GL_QUADS);
+                glTexCoord2f(0.0f, 1.0f); glVertex3f(posX, -hh, -hd);
+                glTexCoord2f(1.0f, 1.0f); glVertex3f(posX, hh, -hd);
+                glTexCoord2f(1.0f, 0.0f); glVertex3f(posX, hh, hd);
+                glTexCoord2f(0.0f, 0.0f); glVertex3f(posX, -hh, hd);
+                glEnd();
+                slicesDrawn++;
+
+                FILE* lf2 = nullptr;
+                fopen_s(&lf2, "D:\\3d_render_debug.log", "a");
+                if (lf2) {
+                    fprintf(lf2, "[3D][STAGE] drew SAGITTAL (a=%.2f)\n", a);
+                    fclose(lf2);
+                }
+            }
+        }
+
+        // 定位线：不要深度测试，使用与切片相同的坐标
+        if (debugStage >= 6) {
+            const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_TEXTURE_2D);
+            glDisable(GL_BLEND);
+            glLineWidth(2.0f);
+
+            // 使用与切片渲染相同的posX/posY/posZ
+            // Axial切片在Z=posZ处, Coronal在Y=posY处, Sagittal在X=posX处
+            // 定位线穿过这三个切片的交点
+            glBegin(GL_LINES);
+            
+            // X轴（红色）- 沿X方向，穿过Coronal和Sagittal切片的交线
+            glColor3f(1.0f, 0.0f, 0.0f);
+            glVertex3f(-hw, posY, posZ);
+            glVertex3f(hw, posY, posZ);
+            
+            // Y轴（绿色）- 沿Y方向，穿过Axial和Sagittal切片的交线
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glVertex3f(posX, -hh, posZ);
+            glVertex3f(posX, hh, posZ);
+            
+            // Z轴（蓝色）- 沿Z方向，穿过Axial和Coronal切片的交线
+            glColor3f(0.0f, 0.0f, 1.0f);
+            glVertex3f(posX, posY, -hd);
+            glVertex3f(posX, posY, hd);
+            
+            glEnd();
+
+            // 裁切框：不要深度测试
+            if (cropBoxVisible && APR_IsCropBoxEnabled()) {
+                float x0c = 0, x1c = 0, y0c = 0, y1c = 0, z0c = 0, z1c = 0;
+                APR_GetCropBox(&x0c, &x1c, &y0c, &y1c, &z0c, &z1c);
+
+                const float cropX0 = ((x0c / denomW) - 0.5f) * normW;
+                const float cropX1 = ((x1c / denomW) - 0.5f) * normW;
+                const float cropY0 = ((y0c / denomH) - 0.5f) * normH;
+                const float cropY1 = ((y1c / denomH) - 0.5f) * normH;
+                const float cropZ0 = ((z0c / denomD) - 0.5f) * normD;
+                const float cropZ1 = ((z1c / denomD) - 0.5f) * normD;
+
+                glLineWidth(2.0f);
+                glEnable(GL_LINE_STIPPLE);
+                glLineStipple(1, 0x00FF);
+                glColor4f(1.0f, 1.0f, 0.0f, 0.85f);
+
+                const int shape = APR_GetCropShape();
+                const int cylDir = APR_GetCropCylinderDirection();
+                const float midX = (cropX0 + cropX1) * 0.5f;
+                const float midY = (cropY0 + cropY1) * 0.5f;
+                const float midZ = (cropZ0 + cropZ1) * 0.5f;
+                const float radX = (cropX1 - cropX0) * 0.5f;
+                const float radY = (cropY1 - cropY0) * 0.5f;
+                const float radZ = (cropZ1 - cropZ0) * 0.5f;
+
+                if (shape == 1) {
+                    const float radius = std::min({ radX, radY, radZ });
+                    DrawCropBoxSphere(midX, midY, midZ, radius, radius, radius);
+                } else if (shape == 2) {
+                    DrawCropBoxCylinder(midX, midY, midZ, radX, radY, radZ, cylDir);
+                } else {
+                    DrawCropBoxCube(cropX0, cropX1, cropY0, cropY1, cropZ0, cropZ1);
+                }
+
+                glDisable(GL_LINE_STIPPLE);
+            }
+
+            if (depthWasEnabled && !debugTransparentNoDepth) {
+                glEnable(GL_DEPTH_TEST);
+            }
+        }
+
+        // 3D 视图比例尺（屏幕空间 overlay）
+        // 优先使用 NanoVG 版本（字体更清晰），获取不到 volume 时再回退到简易 OpenGL 线段版本。
+        {
+            VolumeHandle volume = nullptr;
+            if (APR_GetVolume(axial, &volume) == NATIVE_OK && volume) {
+                // 3D视图使用正交投影，orthoSize = 0.8f / zoom
+                // 正交投影的垂直范围是 [-orthoSize, orthoSize]
+                // 体积的最大维度归一化到1.0，所以需要计算实际物理尺寸
+                const int maxDim = std::max(volW, std::max(volH, volD));
+                const float zoom = viewZoom > 0.1f ? viewZoom : 1.0f;
+                const float orthoSize = 0.8f / zoom;
+                
+                // 使用最小spacing来计算比例尺（与水平比例尺函数一致）
+                float minSpacing = spacingX;
+                if (spacingY < minSpacing) minSpacing = spacingY;
+                if (spacingZ < minSpacing) minSpacing = spacingZ;
+                
+                // 计算屏幕像素对应的物理尺寸：
+                // - 屏幕高度对应正交投影的 2*orthoSize
+                // - 正交投影中，归一化坐标1.0对应物理尺寸 maxDim * minSpacing
+                // - 所以：winHeight像素 = 2*orthoSize归一化单位 = 2*orthoSize*maxDim*minSpacing 毫米
+                // - 因此：1像素 = (2*orthoSize*maxDim*minSpacing) / winHeight 毫米
+                // - 即：mmPerPixel = (2*orthoSize*maxDim*minSpacing) / winHeight
+                // - zoomFactor = 1 / mmPerPixel = winHeight / (2*orthoSize*maxDim*minSpacing)
+                const float mmPerPixel = (2.0f * orthoSize * (float)maxDim * minSpacing) / (float)winHeight;
+                const float effectiveZoom = 1.0f / mmPerPixel;
+                
+                // 使用水平比例尺（地图样式）
+                DrawHorizontalScaleBarNVG(winWidth, winHeight, effectiveZoom, volume);
+            } else {
+                DrawScaleBar(winWidth, winHeight, viewZoom, spacingX, spacingY, spacingZ, volW, volH, volD);
+            }
+        }
+
+        // 绘制方向指示立方体（左下角）
+        DrawOrientationCubeNVG(winWidth, winHeight, camRot);
+
+        fopen_s(&lf, "D:\\3d_render_debug.log", "a");
+        if (lf) {
+            fprintf(lf, "[3D][STAGE] stage=%d slicesDrawn=%d (overlay preview drawn)\n", debugStage, slicesDrawn);
+            fclose(lf);
+        }
+        LogGLStateAndMatrices("stage1+: after draw");
+        restoreScissor();
+        return NATIVE_OK;
+    }
+
+    // ========== 3D正交渲染 ==========
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    
+    // 3D正交投影
+    float aspect = (float)winWidth / (float)winHeight;
+    float zoom = viewZoom > 0.1f ? viewZoom : 1.0f;
+    float orthoSize = 0.8f / zoom;
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-aspect * orthoSize, aspect * orthoSize, -orthoSize, orthoSize, -10.0, 10.0);
+    
+    // ModelView: 应用相机旋转
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glTranslatef(viewPanX * 0.001f, viewPanY * 0.001f, 0.0f);  // 平移
+    glMultMatrixf(camRot);  // 相机旋转
+    
+    // 计算归一化坐标
+    const int maxDim = std::max(volW, std::max(volH, volD));
+    const float normW = (float)volW / (float)maxDim;
+    const float normH = (float)volH / (float)maxDim;
+    const float normD = (float)volD / (float)maxDim;
+    
+    const float denomW = (float)std::max(1, volW - 1);
+    const float denomH = (float)std::max(1, volH - 1);
+    const float denomD = (float)std::max(1, volD - 1);
+
+    // 与 stage 渲染一致：把体数据点(centerX/Y/Z)通过 APR 的旋转矩阵转换到世界坐标点。
+    float aprRotMat2[16] = { 1,0,0,0,  0,1,0,0,  0,0,1,0,  0,0,0,1 };
+    APR_GetRotationMatrix(axial, aprRotMat2);
+    auto rot3b = [](const float m[16], float x, float y, float z, float& ox, float& oy, float& oz) {
+        ox = m[0] * x + m[4] * y + m[8] * z;
+        oy = m[1] * x + m[5] * y + m[9] * z;
+        oz = m[2] * x + m[6] * y + m[10] * z;
+    };
+    const float pivotX2 = (float)volW * 0.5f;
+    const float pivotY2 = (float)volH * 0.5f;
+    const float pivotZ2 = (float)volD * 0.5f;
+    const float dx2 = centerX - pivotX2;
+    const float dy2 = centerY - pivotY2;
+    const float dz2 = centerZ - pivotZ2;
+    float rdx2 = 0.0f, rdy2 = 0.0f, rdz2 = 0.0f;
+    rot3b(aprRotMat2, dx2, dy2, dz2, rdx2, rdy2, rdz2);
+    const float worldCenterX2 = pivotX2 + rdx2;
+    const float worldCenterY2 = pivotY2 + rdy2;
+    const float worldCenterZ2 = pivotZ2 + rdz2;
+
+    const float posX = ((worldCenterX2 / denomW) - 0.5f) * normW;
+    const float posY = ((worldCenterY2 / denomH) - 0.5f) * normH;
+    const float posZ = ((worldCenterZ2 / denomD) - 0.5f) * normD;
+    
+    const float hw = normW * 0.5f;
+    const float hh = normH * 0.5f;
+    const float hd = normD * 0.5f;
+    
+    int slicesDrawn = 0;
+    
+    // 启用纹理
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    // Axial切片 (XY平面, z=posZ)
+    if (tri.texAxial && axSlice) {
+        glBindTexture(GL_TEXTURE_2D, tri.texAxial);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-hw, -hh, posZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-hw,  hh, posZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( hw,  hh, posZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( hw, -hh, posZ);
+        glEnd();
+        slicesDrawn++;
+    }
+    
+    // Coronal切片 (XZ平面, y=posY)
+    if (tri.texCoronal && coSlice) {
+        glBindTexture(GL_TEXTURE_2D, tri.texCoronal);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-hw, posY, -hd);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( hw, posY, -hd);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( hw, posY,  hd);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-hw, posY,  hd);
+        glEnd();
+        slicesDrawn++;
+    }
+    
+    // Sagittal切片 (YZ平面, x=posX)
+    if (tri.texSagittal && saSlice) {
+        glBindTexture(GL_TEXTURE_2D, tri.texSagittal);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(posX, -hh, -hd);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(posX,  hh, -hd);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(posX,  hh,  hd);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(posX, -hh,  hd);
+        glEnd();
+        slicesDrawn++;
+    }
+    
+    // 定位线：使用旋转后的crosshair位置
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+    glLineWidth(2.0f);
+
+    // 获取旋转后的crosshair位置（体素坐标）
+    float crosshairX = centerX, crosshairY = centerY, crosshairZ = centerZ;
+    
+    // 从axial APR获取旋转后的X,Y坐标
+    if (axial) {
+        APR_GetCrosshairPosition(axial, &crosshairX, &crosshairY);
+    }
+    
+    // 从coronal APR获取旋转后的Z坐标
+    if (coronal) {
+        float tempU, tempV;
+        APR_GetCrosshairPosition(coronal, &tempU, &tempV);
+        crosshairZ = tempV;  // coronal的V对应Z坐标
+    }
+
+    // 转换到归一化3D坐标
+    const float crossX = ((crosshairX / denomW) - 0.5f) * normW;
+    const float crossY = ((crosshairY / denomH) - 0.5f) * normH;  
+    const float crossZ = ((crosshairZ / denomD) - 0.5f) * normD;
+
+    glBegin(GL_LINES);
+    // X轴 红
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(-hw, crossY, crossZ); glVertex3f(hw, crossY, crossZ);
+    // Y轴 绿
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(crossX, -hh, crossZ); glVertex3f(crossX, hh, crossZ);
+    // Z轴 蓝
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(crossX, crossY, -hd); glVertex3f(crossX, crossY, hd);
+    glEnd();
+
+    // 裁切框：不要深度测试
+    if (cropBoxVisible && APR_IsCropBoxEnabled()) {
+        float x0 = 0, x1 = 0, y0 = 0, y1 = 0, z0 = 0, z1 = 0;
+        APR_GetCropBox(&x0, &x1, &y0, &y1, &z0, &z1);
+
+        const float cropX0 = ((x0 / denomW) - 0.5f) * normW;
+        const float cropX1 = ((x1 / denomW) - 0.5f) * normW;
+        const float cropY0 = ((y0 / denomH) - 0.5f) * normH;
+        const float cropY1 = ((y1 / denomH) - 0.5f) * normH;
+        const float cropZ0 = ((z0 / denomD) - 0.5f) * normD;
+        const float cropZ1 = ((z1 / denomD) - 0.5f) * normD;
+
+        glLineWidth(2.0f);
+        glEnable(GL_LINE_STIPPLE);
+        glLineStipple(1, 0x00FF);
+        glColor4f(1.0f, 1.0f, 0.0f, 0.85f);
+
+        const int shape = APR_GetCropShape();
+        const int cylDir = APR_GetCropCylinderDirection();
+        const float midX = (cropX0 + cropX1) * 0.5f;
+        const float midY = (cropY0 + cropY1) * 0.5f;
+        const float midZ = (cropZ0 + cropZ1) * 0.5f;
+        const float radX = (cropX1 - cropX0) * 0.5f;
+        const float radY = (cropY1 - cropY0) * 0.5f;
+        const float radZ = (cropZ1 - cropZ0) * 0.5f;
+
+        if (shape == 1) {
+            const float radius = std::min({ radX, radY, radZ });
+            DrawCropBoxSphere(midX, midY, midZ, radius, radius, radius);
+        } else if (shape == 2) {
+            DrawCropBoxCylinder(midX, midY, midZ, radX, radY, radZ, cylDir);
+        } else {
+            DrawCropBoxCube(cropX0, cropX1, cropY0, cropY1, cropZ0, cropZ1);
+        }
+        glDisable(GL_LINE_STIPPLE);
+    }
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Rendered %d slices with axis lines\n", slicesDrawn);
+        fclose(logFile);
+    }
+
+    // 3D 视图比例尺（屏幕空间 overlay）
+    // 优先使用 NanoVG 版本（字体更清晰），获取不到 volume 时再回退到简易 OpenGL 线段版本。
+    {
+        VolumeHandle volume = nullptr;
+        if (APR_GetVolume(axial, &volume) == NATIVE_OK && volume) {
+            // 3D视图使用正交投影，orthoSize = 0.8f / zoom
+            // 正交投影的垂直范围是 [-orthoSize, orthoSize]
+            // 体积的最大维度归一化到1.0，所以需要计算实际物理尺寸
+            const int maxDim = std::max(volW, std::max(volH, volD));
+            const float zoom = viewZoom > 0.1f ? viewZoom : 1.0f;
+            const float orthoSize = 0.8f / zoom;
+            
+            // 使用最小spacing来计算比例尺（与水平比例尺函数一致）
+            float minSpacing = spacingX;
+            if (spacingY < minSpacing) minSpacing = spacingY;
+            if (spacingZ < minSpacing) minSpacing = spacingZ;
+            
+            // 计算屏幕像素对应的物理尺寸：
+            // - 正交投影范围是 [-orthoSize, orthoSize]，总跨度 2*orthoSize
+            // - 归一化体积范围是 [-1, 1]，总跨度 2，对应物理尺寸 maxDim * minSpacing
+            // - 屏幕高度 winHeight 显示正交投影的全部跨度 2*orthoSize
+            // - 正交投影跨度 2*orthoSize 对应归一化跨度 2*orthoSize
+            // - 归一化跨度 2*orthoSize 对应物理尺寸 (2*orthoSize/2) * (maxDim * minSpacing)
+            // - 即：winHeight像素 = orthoSize * maxDim * minSpacing 毫米
+            // - 因此：mmPerPixel = (orthoSize * maxDim * minSpacing) / winHeight
+            const float mmPerPixel = (orthoSize * (float)maxDim * minSpacing) / (float)winHeight;
+            const float effectiveZoom = 1.0f / mmPerPixel;
+            
+            // 使用水平比例尺（地图样式）
+            DrawHorizontalScaleBarNVG(winWidth, winHeight, effectiveZoom, volume);
+        } else {
+            DrawScaleBar(winWidth, winHeight, viewZoom, spacingX, spacingY, spacingZ, volW, volH, volD);
+        }
+    }
+    
+    // 绘制方向指示立方体（左下角）
+    DrawOrientationCubeNVG(winWidth, winHeight, camRot);
+    
+    restoreScissor();
+    return NATIVE_OK;
+    
+    // ========== 以下是原来的复杂渲染代码，暂时跳过 ==========
+#if 0
+    // 打印 camRot 矩阵到日志
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Camera rotation matrix (camRot):\n");
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", camRot[0], camRot[4], camRot[8], camRot[12]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", camRot[1], camRot[5], camRot[9], camRot[13]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", camRot[2], camRot[6], camRot[10], camRot[14]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", camRot[3], camRot[7], camRot[11], camRot[15]);
+        fclose(logFile);
+    }
+    
+    // Projection 矩阵设置和日志
+    float aspect = static_cast<float>(winWidth) / static_cast<float>(winHeight);
+    float zoom = viewZoom > 0.1f ? viewZoom : 1.0f;  // 使用实际的zoom值
+    // 基于归一化体积大小设置orthoSize（体积被归一化到[-0.5, 0.5]范围）
+    float orthoSize = 0.8f / zoom;  // 0.8让体积占据80%的视野
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Projection setup:\n");
+        fprintf(logFile, "  aspect=%.3f zoom=%.3f orthoSize=%.3f\n", aspect, zoom, orthoSize);
+        fclose(logFile);
+    }
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-aspect * orthoSize, aspect * orthoSize, -orthoSize, orthoSize, -1000.0, 1000.0);
+
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        float m[16];
+        glGetFloatv(GL_PROJECTION_MATRIX, m);
+        fprintf(logFile, "[3D] Projection matrix after glOrtho:\n");
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[0], m[4], m[8], m[12]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[1], m[5], m[9], m[13]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[2], m[6], m[10], m[14]);
+        fprintf(logFile, "  [%7.3f %7.3f %7.3f %7.3f]\n", m[3], m[7], m[11], m[15]);
+        fclose(logFile);
+    }
+    
+    // ModelView 矩阵设置
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+
+
+    // ModelView 矩阵设置
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] ModelView setup:\n");
+        fprintf(logFile, "  Pan: (%.3f, %.3f)\n", viewPanX, viewPanY);
+        fprintf(logFile, "  Applied camera rotation matrix\n");
+        fclose(logFile);
+    }
+
+    // 应用平移
+    glTranslatef(viewPanX, viewPanY, 0.0f);
+    // 应用旋转
+    glMultMatrixf(camRot);
+
+    glEnable(GL_DEPTH_TEST);   // 开启深度测试
+    glDepthFunc(GL_LEQUAL);    // 小于等于时通过
+    glDepthMask(GL_TRUE);      // 确保深度写入开启
+    glEnable(GL_TEXTURE_2D);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+    const int maxDim = std::max(volW, std::max(volH, volD));
+    const float normW = (float)volW / (float)maxDim;
+    const float normH = (float)volH / (float)maxDim;
+    const float normD = (float)volD / (float)maxDim;
+
+    const float denomW = (float)std::max(1, volW - 1);
+    const float denomH = (float)std::max(1, volH - 1);
+    const float denomD = (float)std::max(1, volD - 1);
+
+    // simplified path: match APR_Render virtualCenter semantics
+    float aprRotMatSimple[16] = { 1,0,0,0,  0,1,0,0,  0,0,1,0,  0,0,0,1 };
+    APR_GetRotationMatrix(axial, aprRotMatSimple);
+
+    const float r00s = aprRotMatSimple[0];
+    const float r01s = aprRotMatSimple[4];
+    const float r02s = aprRotMatSimple[8];
+    const float r10s = aprRotMatSimple[1];
+    const float r11s = aprRotMatSimple[5];
+    const float r12s = aprRotMatSimple[9];
+    const float r20s = aprRotMatSimple[2];
+    const float r21s = aprRotMatSimple[6];
+    const float r22s = aprRotMatSimple[10];
+
+    const float pivotXs = (float)volW * 0.5f;
+    const float pivotYs = (float)volH * 0.5f;
+    const float pivotZs = (float)volD * 0.5f;
+
+    const float dxs = centerX - pivotXs;
+    const float dys = centerY - pivotYs;
+    const float dzs = centerZ - pivotZs;
+
+    const float virtualCenterXs = pivotXs + (r00s * dxs + r10s * dys + r20s * dzs);
+    const float virtualCenterYs = pivotYs + (r01s * dxs + r11s * dys + r21s * dzs);
+    const float virtualCenterZs = pivotZs + (r02s * dxs + r12s * dys + r22s * dzs);
+
+    const float normCenterX = (virtualCenterXs / denomW) - 0.5f;
+    const float normCenterY = (virtualCenterYs / denomH) - 0.5f;
+    const float normCenterZ = (virtualCenterZs / denomD) - 0.5f;
+
+    const float posX = normCenterX * normW;
+    const float posY = normCenterY * normH;
+    const float posZ = normCenterZ * normD;
+
+    // 详细日志到文件
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Geometry: maxDim=%d norm=(%.3f,%.3f,%.3f) pos=(%.3f,%.3f,%.3f)\n",
+               maxDim, normW, normH, normD, posX, posY, posZ);
+        fclose(logFile);
+    }
+
+    int slicesDrawn = 0;
+    
+    // 简化: 不使用Rot3Local，直接画切片
+    const float hw = normW * 0.5f;  // 半宽
+    const float hh = normH * 0.5f;  // 半高
+    const float hd = normD * 0.5f;  // 半深
+    
+    // 启用纹理和设置纹理环境
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);  // 白色，让纹理颜色显示
+
+    if (tri.texAxial && axSlice) {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Drawing AXIAL slice: tex=%u at z=%.3f\n", tri.texAxial, posZ);
+            fclose(logFile);
+        }
+        glBindTexture(GL_TEXTURE_2D, tri.texAxial);
+        // Axial 切片: XY平面，在z=posZ处 (上下翻转：V 1→0)
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-hw, -hh, posZ);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-hw,  hh, posZ);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( hw,  hh, posZ);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( hw, -hh, posZ);
+        glEnd();
+        slicesDrawn++;
+    }
+
+    if (tri.texCoronal && coSlice) {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Drawing CORONAL slice: tex=%u at y=%.3f\n", tri.texCoronal, posY);
+            fclose(logFile);
+        }
+        glBindTexture(GL_TEXTURE_2D, tri.texCoronal);
+        // Coronal 切片: XZ平面，在y=posY处 (上下翻转：V 1→0)
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(-hw, posY, -hd);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f( hw, posY, -hd);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f( hw, posY,  hd);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(-hw, posY,  hd);
+        glEnd();
+        slicesDrawn++;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "    CORONAL drawn successfully\n");
+            fclose(logFile);
+        }
+    } else {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  SKIP CORONAL: tex=%u coSlice=%p\n", tri.texCoronal, coSlice);
+            fclose(logFile);
+        }
+    }
+
+    if (tri.texSagittal && saSlice) {
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "  Drawing SAGITTAL slice: tex=%u at x=%.3f (YZ plane)\n", tri.texSagittal, posX);
+            fprintf(logFile, "    Quad corners: (%.3f,-%.3f,-%.3f) to (%.3f,%.3f,%.3f)\n", posX, hh, hd, posX, hh, hd);
+            fclose(logFile);
+        }
+        glBindTexture(GL_TEXTURE_2D, tri.texSagittal);
+        // Sagittal 切片: YZ平面，在x=posX处 (上下翻转：V 1→0)
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 1.0f); glVertex3f(posX, -hh, -hd);
+        glTexCoord2f(1.0f, 1.0f); glVertex3f(posX,  hh, -hd);
+        glTexCoord2f(1.0f, 0.0f); glVertex3f(posX,  hh,  hd);
+        glTexCoord2f(0.0f, 0.0f); glVertex3f(posX, -hh,  hd);
+        glEnd();
+        slicesDrawn++;
+    }
+
+    // 定位线: 关闭深度测试，让线始终在最前面
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glLineWidth(3.0f);
+    glBegin(GL_LINES);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(-hw, posY, posZ); glVertex3f(hw, posY, posZ);  // X轴 红
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(posX, -hh, posZ); glVertex3f(posX, hh, posZ);  // Y轴 绿
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(posX, posY, -hd); glVertex3f(posX, posY, hd);  // Z轴 蓝
+    glEnd();
+    glEnable(GL_DEPTH_TEST);  // 恢复深度测试
+    
+    // 完成日志
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "[3D] Rendering complete: drew %d slices\n========== [3D Render End] ==========\n\n", slicesDrawn);
+        fclose(logFile);
+    }
+
+    if (cropBoxVisible && APR_IsCropBoxEnabled()) {
+        const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+        glDisable(GL_DEPTH_TEST);
+
+        float x0 = 0, x1 = 0, y0 = 0, y1 = 0, z0 = 0, z1 = 0;
+        APR_GetCropBox(&x0, &x1, &y0, &y1, &z0, &z1);
+
+        const float cropX0 = ((x0 / denomW) - 0.5f) * normW;
+        const float cropX1 = ((x1 / denomW) - 0.5f) * normW;
+        const float cropY0 = ((y0 / denomH) - 0.5f) * normH;
+        const float cropY1 = ((y1 / denomH) - 0.5f) * normH;
+        const float cropZ0 = ((z0 / denomD) - 0.5f) * normD;
+        const float cropZ1 = ((z1 / denomD) - 0.5f) * normD;
+
+        glLineWidth(2.0f);
+        glEnable(GL_LINE_STIPPLE);
+        glLineStipple(1, 0x00FF);
+        glColor4f(1.0f, 1.0f, 0.0f, 0.85f);
+
+        const int shape = APR_GetCropShape();
+        const int cylDir = APR_GetCropCylinderDirection();
+        const float midX = (cropX0 + cropX1) * 0.5f;
+        const float midY = (cropY0 + cropY1) * 0.5f;
+        const float midZ = (cropZ0 + cropZ1) * 0.5f;
+        const float radX = (cropX1 - cropX0) * 0.5f;
+        const float radY = (cropY1 - cropY0) * 0.5f;
+        const float radZ = (cropZ1 - cropZ0) * 0.5f;
+
+        if (shape == 1) {
+            const float radius = std::min({ radX, radY, radZ });
+            DrawCropBoxSphere(midX, midY, midZ, radius, radius, radius);
+        } else if (shape == 2) {
+            DrawCropBoxCylinder(midX, midY, midZ, radX, radY, radZ, cylDir);
+        } else {
+            DrawCropBoxCube(cropX0, cropX1, cropY0, cropY1, cropZ0, cropZ1);
+        }
+
+        glDisable(GL_LINE_STIPPLE);
+
+        if (depthWasEnabled) {
+            glEnable(GL_DEPTH_TEST);
+        }
+    }
+
+    /* 暂时禁用比例尺 - APR_GetVolume未声明
+    // 绘制比例尺（使用NanoVG）
+    // 从axial APRHandle获取volume
+    VolumeHandle volume = nullptr;
+    APR_GetVolume(axial, &volume);
+    if (volume && winWidth > 0 && winHeight > 0) {
+        FILE* logFile = nullptr;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "[ImageBrowserOrthogonal3DRenderer::Render] Calling DrawVerticalScaleBarNVG_InFrame, volume=%p win=%dx%d zoom=%.3f\n", 
+                    volume, winWidth, winHeight, viewZoom);
+            fclose(logFile);
+        }
+        DrawVerticalScaleBarNVG_InFrame(winWidth, winHeight, 0, viewZoom, volume);
+    } else {
+        FILE* logFile = nullptr;
+        fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+        if (logFile) {
+            fprintf(logFile, "[ImageBrowserOrthogonal3DRenderer::Render] NO scale bar: volume=%p win=%dx%d\n", volume, winWidth, winHeight);
+            fclose(logFile);
+        }
+    }
+    */
+
+#endif  // #if 0 关闭复杂渲染
+
+    fopen_s(&logFile, "D:\\3d_render_debug.log", "a");
+    if (logFile) {
+        fprintf(logFile, "========== [3D Render End - SUCCESS] ==========\n\n");
+        fclose(logFile);
+    }
+
+    return NATIVE_OK;
+}
+
+void ImageBrowserOrthogonal3DRenderer::DrawCropBoxCube(float x0, float x1, float y0, float y1, float z0, float z1) {
+    glBegin(GL_LINES);
+    glVertex3f(x0, y0, z0); glVertex3f(x1, y0, z0);
+    glVertex3f(x1, y0, z0); glVertex3f(x1, y1, z0);
+    glVertex3f(x1, y1, z0); glVertex3f(x0, y1, z0);
+    glVertex3f(x0, y1, z0); glVertex3f(x0, y0, z0);
+    glVertex3f(x0, y0, z1); glVertex3f(x1, y0, z1);
+    glVertex3f(x1, y0, z1); glVertex3f(x1, y1, z1);
+    glVertex3f(x1, y1, z1); glVertex3f(x0, y1, z1);
+    glVertex3f(x0, y1, z1); glVertex3f(x0, y0, z1);
+    glVertex3f(x0, y0, z0); glVertex3f(x0, y0, z1);
+    glVertex3f(x1, y0, z0); glVertex3f(x1, y0, z1);
+    glVertex3f(x1, y1, z0); glVertex3f(x1, y1, z1);
+    glVertex3f(x0, y1, z0); glVertex3f(x0, y1, z1);
+    glEnd();
+}
+
+void ImageBrowserOrthogonal3DRenderer::DrawCropBoxSphere(float midX, float midY, float midZ, float radX, float radY, float radZ, int segments) {
+    const float radius = std::min({ radX, radY, radZ });
+    const float pi2 = 2.0f * 3.14159265f;
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < segments; i++) {
+        float a = (float)i / segments * pi2;
+        glVertex3f(midX + radius * cosf(a), midY + radius * sinf(a), midZ);
+    }
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < segments; i++) {
+        float a = (float)i / segments * pi2;
+        glVertex3f(midX + radius * cosf(a), midY, midZ + radius * sinf(a));
+    }
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < segments; i++) {
+        float a = (float)i / segments * pi2;
+        glVertex3f(midX, midY + radius * cosf(a), midZ + radius * sinf(a));
+    }
+    glEnd();
+}
+
+void ImageBrowserOrthogonal3DRenderer::DrawCropBoxCylinder(float midX, float midY, float midZ, float radX, float radY, float radZ, int cylDir, int segments) {
+    const float pi2 = 2.0f * 3.14159265f;
+    if (cylDir == 0) {
+        const float r = std::min(radX, radY);
+        const float z0 = midZ - radZ;
+        const float z1 = midZ + radZ;
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(midX + r * cosf(a), midY + r * sinf(a), z0);
+        }
+        glEnd();
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(midX + r * cosf(a), midY + r * sinf(a), z1);
+        }
+        glEnd();
+        glBegin(GL_LINES);
+        for (int i = 0; i < 4; i++) {
+            float a = (float)i / 4 * pi2;
+            float x = midX + r * cosf(a);
+            float y = midY + r * sinf(a);
+            glVertex3f(x, y, z0);
+            glVertex3f(x, y, z1);
+        }
+        glEnd();
+    } else if (cylDir == 1) {
+        const float r = std::min(radX, radZ);
+        const float y0 = midY - radY;
+        const float y1 = midY + radY;
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(midX + r * cosf(a), y0, midZ + r * sinf(a));
+        }
+        glEnd();
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(midX + r * cosf(a), y1, midZ + r * sinf(a));
+        }
+        glEnd();
+        glBegin(GL_LINES);
+        for (int i = 0; i < 4; i++) {
+            float a = (float)i / 4 * pi2;
+            float x = midX + r * cosf(a);
+            float z = midZ + r * sinf(a);
+            glVertex3f(x, y0, z);
+            glVertex3f(x, y1, z);
+        }
+        glEnd();
+    } else {
+        const float r = std::min(radY, radZ);
+        const float x0 = midX - radX;
+        const float x1 = midX + radX;
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(x0, midY + r * cosf(a), midZ + r * sinf(a));
+        }
+        glEnd();
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < segments; i++) {
+            float a = (float)i / segments * pi2;
+            glVertex3f(x1, midY + r * cosf(a), midZ + r * sinf(a));
+        }
+        glEnd();
+        glBegin(GL_LINES);
+        for (int i = 0; i < 4; i++) {
+            float a = (float)i / 4 * pi2;
+            float y = midY + r * cosf(a);
+            float z = midZ + r * sinf(a);
+            glVertex3f(x0, y, z);
+            glVertex3f(x1, y, z);
+        }
+        glEnd();
+    }
+}
+
+void ImageBrowserOrthogonal3DRenderer::DrawScaleBar(int winWidth, int winHeight, float zoom, float spacingX, float spacingY, float spacingZ, int volW, int volH, int volD) {
+    if (winWidth <= 0 || winHeight <= 0) return;
+
+    const float minSpacing = std::max(0.0001f, std::min({ spacingX, spacingY, spacingZ }));
+    const float maxDim = (float)std::max(volW, std::max(volH, volD));
+
+    const float mmPerWorld = minSpacing * maxDim;
+    const float pxPerWorld = (zoom <= 0.0f) ? 0.0f : (zoom * (float)winHeight) / 3.0f;
+    if (pxPerWorld <= 0.0f) return;
+
+    const float mmPerPx = mmPerWorld / pxPerWorld;
+    const float targetPx = 100.0f;
+    float rawMm = mmPerPx * targetPx;
+    float niceMm = NiceNumber(rawMm);
+    float barPx = niceMm / mmPerPx;
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, winWidth, 0, winHeight, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glLineWidth(1.0f);
+
+    // 右下角位置
+    const float margin = 20.0f;
+    const float x1 = (float)winWidth - margin;
+    const float x0 = x1 - barPx;
+    const float y0 = margin;
+    const float tick = 5.0f;
+
+    glBegin(GL_LINES);
+    // 左端刻度
+    glVertex2f(x0, y0); glVertex2f(x0, y0 + tick);
+    // 横线
+    glVertex2f(x0, y0); glVertex2f(x1, y0);
+    // 右端刻度
+    glVertex2f(x1, y0); glVertex2f(x1, y0 + tick);
+    glEnd();
+
+    // 绘制标签文字 (使用简单的点阵方式绘制数字)
+    // 由于OpenGL固定管线没有内置文字渲染，我们用简单的线段画数字
+    DrawScaleLabel(niceMm, (x0 + x1) * 0.5f, y0 + tick + 3.0f);
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+}
+
+// 简单的7段数码管风格数字绘制
+namespace {
+void DrawDigit(char c, float x, float y, float w, float h) {
+    // 7段: top, top-left, top-right, middle, bottom-left, bottom-right, bottom
+    // 每个数字定义哪些段亮
+    static const bool segs[11][7] = {
+        {1,1,1,0,1,1,1}, // 0
+        {0,0,1,0,0,1,0}, // 1
+        {1,0,1,1,1,0,1}, // 2
+        {1,0,1,1,0,1,1}, // 3
+        {0,1,1,1,0,1,0}, // 4
+        {1,1,0,1,0,1,1}, // 5
+        {1,1,0,1,1,1,1}, // 6
+        {1,0,1,0,0,1,0}, // 7
+        {1,1,1,1,1,1,1}, // 8
+        {1,1,1,1,0,1,1}, // 9
+        {0,0,0,0,0,0,0}, // 空格或其他
+    };
+    
+    int idx = 10;
+    if (c >= '0' && c <= '9') idx = c - '0';
+    
+    const float hw = w * 0.5f;
+    const float hh = h * 0.5f;
+    
+    glBegin(GL_LINES);
+    // top
+    if (segs[idx][0]) { glVertex2f(x, y + h); glVertex2f(x + w, y + h); }
+    // top-left
+    if (segs[idx][1]) { glVertex2f(x, y + hh); glVertex2f(x, y + h); }
+    // top-right
+    if (segs[idx][2]) { glVertex2f(x + w, y + hh); glVertex2f(x + w, y + h); }
+    // middle
+    if (segs[idx][3]) { glVertex2f(x, y + hh); glVertex2f(x + w, y + hh); }
+    // bottom-left
+    if (segs[idx][4]) { glVertex2f(x, y); glVertex2f(x, y + hh); }
+    // bottom-right
+    if (segs[idx][5]) { glVertex2f(x + w, y); glVertex2f(x + w, y + hh); }
+    // bottom
+    if (segs[idx][6]) { glVertex2f(x, y); glVertex2f(x + w, y); }
+    glEnd();
+}
+
+void DrawChar(char c, float x, float y, float w, float h) {
+    if (c == 'm') {
+        glBegin(GL_LINES);
+        glVertex2f(x, y); glVertex2f(x, y + h);
+        glVertex2f(x, y + h); glVertex2f(x + w * 0.5f, y + h * 0.6f);
+        glVertex2f(x + w * 0.5f, y + h * 0.6f); glVertex2f(x + w, y + h);
+        glVertex2f(x + w, y + h); glVertex2f(x + w, y);
+        glEnd();
+    } else if (c == '.') {
+        glBegin(GL_POINTS);
+        glVertex2f(x + w * 0.5f, y);
+        glEnd();
+    } else if (c >= '0' && c <= '9') {
+        DrawDigit(c, x, y, w, h);
+    }
+}
+} // namespace
+
+void ImageBrowserOrthogonal3DRenderer::DrawScaleLabel(float mm, float centerX, float baseY) {
+    char buf[32];
+    if (mm >= 1.0f) {
+        snprintf(buf, sizeof(buf), "%.0fmm", mm);
+    } else {
+        snprintf(buf, sizeof(buf), "%.1fmm", mm);
+    }
+    
+    const float charW = 6.0f;
+    const float charH = 9.0f;
+    const float spacing = 1.0f;
+    
+    int len = (int)strlen(buf);
+    float totalW = len * (charW + spacing) - spacing;
+    float startX = centerX - totalW * 0.5f;
+    
+    for (int i = 0; i < len; i++) {
+        DrawChar(buf[i], startX + i * (charW + spacing), baseY, charW, charH);
+    }
+}
+
+void ImageBrowserOrthogonal3DRenderer::Mat4_Identity(float out[16]) {
+    Mat4_IdentityLocal(out);
+}
+
+void ImageBrowserOrthogonal3DRenderer::Mat4_FromEulerZYXDeg(float out[16], float xDeg, float yDeg, float zDeg) {
+    Mat4_FromEulerZYXDegLocal(out, xDeg, yDeg, zDeg);
+}
+
+void ImageBrowserOrthogonal3DRenderer::Rot3(const float m[16], float x, float y, float z, float& ox, float& oy, float& oz) {
+    Rot3Local(m, x, y, z, ox, oy, oz);
+}

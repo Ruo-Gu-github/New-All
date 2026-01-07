@@ -1,0 +1,20 @@
+{
+  "name": "console-dll-addon",
+  "version": "1.0.0",
+  "description": "Node.js addon for ConsoleDllTest DLLs",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "postinstall": "node scripts/patch-node-gyp-vs18.js",
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean"
+  },
+  "gypfile": true,
+  "dependencies": {
+    "node-addon-api": "^8.5.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.1"
+  },
+  "__npminstall_done": false
+}

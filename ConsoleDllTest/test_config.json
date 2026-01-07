@@ -1,0 +1,17 @@
+{
+  "dicom": {
+    "single_file": "D:/TestData/Dicom/CT_1.dcm",
+    "series_folder": "D:/TestData/Dicom/Series1",
+    "output_folder": "D:/TestData/Output"
+  },
+  "window": {
+    "width": 800,
+    "height": 600,
+    "title": "Medical Image Viewer"
+  },
+  "rendering": {
+    "use_offscreen": true,
+    "use_shared_memory": false,
+    "fps": 30
+  }
+}

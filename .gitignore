@@ -1,0 +1,56 @@
+# Build outputs
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.iobj
+*.ipdb
+*.log
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
+*.FileListAbsolute.txt
+
+# Directories
+Debug/
+Release/
+x64/
+.vs/
+node_modules/
+dist/
+out/
+build/vcpkg/
+build/vcpkg_installed/
+
+# IDE
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Node
+*.node
+
+# Temp files
+*.tmp
+*.temp
+*~
+*.swp
+*.bak
+
+# Large binary files
+*.dll
+*.exe
+*.dcm
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Keep specific config files
+!.gitignore

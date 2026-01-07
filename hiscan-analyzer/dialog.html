@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阈值分割</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      background: #ffffff;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+    }
+    
+    /* 自定义标题栏 */
+    .custom-titlebar {
+      height: 50px;
+      background: #f5f7fa;
+      border-bottom: 1px solid #e4e7ed;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      -webkit-app-region: drag;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .titlebar-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #303133;
+    }
+    
+    .titlebar-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+      transition: background 0.2s;
+      color: #909399;
+      font-size: 20px;
+    }
+    
+    .titlebar-close:hover {
+      background: #f56c6c;
+      color: #fff;
+    }
+    
+    #app {
+      width: 100%;
+      height: calc(100vh - 50px);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .form-item {
+      margin-bottom: 24px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 12px;
+      color: #606266;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    #histogram {
+      width: 100%;
+      height: 200px;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    
+    .dialog-footer {
+      padding-top: 16px;
+      border-top: 1px solid #e4e7ed;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- 自定义标题栏 -->
+  <div class="custom-titlebar">
+    <div class="titlebar-title">阈值分割</div>
+    <div class="titlebar-close" id="close-btn">×</div>
+  </div>
+  
+  <div id="app">
+    <div class="form-item">
+      <label class="form-label">最小值 (<span id="min-label">0</span>)</label>
+      <div id="min-slider-container"></div>
+    </div>
+    
+    <div class="form-item">
+      <label class="form-label">最大值 (<span id="max-label">255</span>)</label>
+      <div id="max-slider-container"></div>
+    </div>
+    
+    <div class="form-item">
+      <label class="form-label">直方图预览（Y轴为对数尺度）</label>
+      <canvas id="histogram"></canvas>
+    </div>
+    
+    <div class="form-item">
+      <label class="form-label">掩膜颜色</label>
+      <div id="color-picker-container"></div>
+    </div>
+    
+    <div class="dialog-footer">
+      <button id="cancel-btn" class="el-button">取消</button>
+      <button id="apply-btn" class="el-button el-button--primary">应用</button>
+    </div>
+  </div>
+  
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/element-plus"></script>
+  <script>
+    const { createApp, ref, onMounted, watch, nextTick } = Vue;
+    const { ElSlider, ElColorPicker, ElButton } = ElementPlus;
+    
+    const app = createApp({
+      components: {
+        ElSlider,
+        ElColorPicker,
+        ElButton
+      },
+      setup() {
+        const rigMarkMin = ref(0);
+        const rigMarkMax = ref(255);
+        const histogramMinValue = ref(0);
+        const histogramMaxValue = ref(255);
+        const previewColor = ref('#ffff00');
+        const histogramData = ref([]);
+        let sessionId = '';
+        
+        onMounted(async () => {
+          console.log('[Dialog] Mounted');
+          
+          // 从 URL 获取参数
+          const params = new URLSearchParams(window.location.search);
+          sessionId = params.get('sessionId') || '';
+          const minVal = parseInt(params.get('minValue') || '0');
+          const maxVal = parseInt(params.get('maxValue') || '255');
+          const histData = params.get('histogramData');
+          
+          console.log('[Dialog] SessionId:', sessionId);
+          console.log('[Dialog] MinValue:', minVal);
+          console.log('[Dialog] MaxValue:', maxVal);
+          
+          if (histData) {
+            try {
+              histogramData.value = JSON.parse(histData);
+              console.log('[Dialog] Histogram data length:', histogramData.value.length);
+            } catch (e) {
+              console.error('[Dialog] Failed to parse histogram data:', e);
+            }
+          }
+          
+          histogramMinValue.value = minVal;
+          histogramMaxValue.value = maxVal;
+          rigMarkMin.value = minVal;
+          rigMarkMax.value = maxVal;
+          
+          // 更新标签
+          document.getElementById('min-label').textContent = rigMarkMin.value;
+          document.getElementById('max-label').textContent = rigMarkMax.value;
+          
+          await nextTick();
+          drawHistogram();
+          
+          // 监听值变化
+          watch([rigMarkMin, rigMarkMax], () => {
+            document.getElementById('min-label').textContent = rigMarkMin.value;
+            document.getElementById('max-label').textContent = rigMarkMax.value;
+            drawHistogram();
+            updatePreview();
+          });
+          
+          watch(previewColor, () => {
+            updatePreview();
+          });
+        });
+        
+        function drawHistogram() {
+          const canvas = document.getElementById('histogram');
+          if (!canvas || !histogramData.value.length) {
+            console.warn('[Dialog] Cannot draw, no canvas or data');
+            return;
+          }
+          
+          const dpr = window.devicePixelRatio || 1;
+          const rect = canvas.getBoundingClientRect();
+          canvas.width = rect.width * dpr;
+          canvas.height = rect.height * dpr;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.scale(dpr, dpr);
+          
+          const width = rect.width;
+          const height = rect.height;
+          const data = histogramData.value;
+          
+          ctx.clearRect(0, 0, width, height);
+          
+          // 对数转换
+          const logData = data.map(v => v > 0 ? Math.log10(v + 1) : 0);
+          const maxLog = Math.max(...logData);
+          
+          if (maxLog === 0) return;
+          
+          // 绘制直方图
+          const barWidth = width / data.length;
+          ctx.fillStyle = '#409eff';
+          
+          logData.forEach((value, index) => {
+            const barHeight = (value / maxLog) * height;
+            const x = index * barWidth;
+            const y = height - barHeight;
+            ctx.fillRect(x, y, Math.max(barWidth - 1, 1), barHeight);
+          });
+          
+          // 绘制阈值线
+          const range = histogramMaxValue.value - histogramMinValue.value;
+          if (range === 0) return;
+          
+          const minX = ((rigMarkMin.value - histogramMinValue.value) / range) * width;
+          const maxX = ((rigMarkMax.value - histogramMinValue.value) / range) * width;
+          
+          ctx.strokeStyle = '#f56c6c';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          
+          ctx.beginPath();
+          ctx.moveTo(minX, 0);
+          ctx.lineTo(minX, height);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(maxX, 0);
+          ctx.lineTo(maxX, height);
+          ctx.stroke();
+        }
+        
+        async function updatePreview() {
+          if (!sessionId) return;
+          
+          try {
+            await window.electronAPI.invoke('viz:update-preview-mask', 
+              sessionId, rigMarkMin.value, rigMarkMax.value, previewColor.value);
+          } catch (error) {
+            console.error('[Dialog] Update preview error:', error);
+          }
+        }
+        
+        function cancel() {
+          window.electronAPI.send('dialog:close', { action: 'cancel' });
+        }
+        
+        function apply() {
+          window.electronAPI.send('dialog:close', {
+            action: 'apply',
+            data: {
+              min: rigMarkMin.value,
+              max: rigMarkMax.value,
+              color: previewColor.value
+            }
+          });
+        }
+        
+        // 绑定按钮事件
+        setTimeout(() => {
+          document.getElementById('close-btn')?.addEventListener('click', cancel);
+          document.getElementById('cancel-btn')?.addEventListener('click', cancel);
+          document.getElementById('apply-btn')?.addEventListener('click', apply);
+        }, 100);
+        
+        return {
+          rigMarkMin,
+          rigMarkMax,
+          histogramMinValue,
+          histogramMaxValue,
+          previewColor
+        };
+      }
+    });
+    
+    app.use(ElementPlus);
+    const vm = app.mount('#app');
+    
+    // 创建 Element Plus 组件实例
+    setTimeout(() => {
+      // Min Slider
+      const minSliderApp = createApp({
+        template: `<el-slider v-model="value" :min="min" :max="max" show-input @input="onChange" />`,
+        setup() {
+          return {
+            value: vm.rigMarkMin,
+            min: vm.histogramMinValue,
+            max: vm.histogramMaxValue,
+            onChange: (val) => { vm.rigMarkMin = val; }
+          };
+        }
+      });
+      minSliderApp.use(ElementPlus).mount('#min-slider-container');
+      
+      // Max Slider
+      const maxSliderApp = createApp({
+        template: `<el-slider v-model="value" :min="min" :max="max" show-input @input="onChange" />`,
+        setup() {
+          return {
+            value: vm.rigMarkMax,
+            min: vm.histogramMinValue,
+            max: vm.histogramMaxValue,
+            onChange: (val) => { vm.rigMarkMax = val; }
+          };
+        }
+      });
+      maxSliderApp.use(ElementPlus).mount('#max-slider-container');
+      
+      // Color Picker
+      const colorPickerApp = createApp({
+        template: `<el-color-picker v-model="value" show-alpha @change="onChange" />`,
+        setup() {
+          return {
+            value: vm.previewColor,
+            onChange: (val) => { vm.previewColor = val; }
+          };
+        }
+      });
+      colorPickerApp.use(ElementPlus).mount('#color-picker-container');
+    }, 200);
+  </script>
+</body>
+</html>

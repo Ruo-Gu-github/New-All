@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>光照</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+      .titlebar-close:hover {
+        background: #eee;
+      }
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 90px 1fr 70px;
+        gap: 12px;
+        align-items: center;
+      }
+      .label {
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .dialog-footer {
+        padding-top: 16px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">光照</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <div class="row">
+        <div class="label">Ambient</div>
+        <div id="ambient"></div>
+        <div style="text-align: right" id="ambient-val"></div>
+      </div>
+      <div class="row">
+        <div class="label">Diffuse</div>
+        <div id="diffuse"></div>
+        <div style="text-align: right" id="diffuse-val"></div>
+      </div>
+      <div class="row">
+        <div class="label">Specular</div>
+        <div id="specular"></div>
+        <div style="text-align: right" id="specular-val"></div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="cancel-btn" class="el-button">取消</button>
+        <button id="apply-btn" class="el-button el-button--primary">
+          应用
+        </button>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref, computed } = Vue;
+
+      const app = createApp({
+        setup() {
+          const ambient = ref(0.25);
+          const diffuse = ref(0.75);
+          const specular = ref(0.0);
+
+          const applyInitData = (p) => {
+            if (!p || typeof p !== "object") return;
+            if (typeof p.ambient === "number") ambient.value = p.ambient;
+            if (typeof p.diffuse === "number") diffuse.value = p.diffuse;
+            if (typeof p.specular === "number") specular.value = p.specular;
+          };
+
+          try {
+            if (window.electronAPI?.on) {
+              window.electronAPI.on("dialog:init-data", (params) => {
+                applyInitData(params);
+                console.log("[Lighting Dialog] init-data:", params);
+              });
+            }
+            window.electronAPI?.send?.("dialog:ready");
+          } catch (e) {
+            console.warn("[Lighting Dialog] init-data hookup failed:", e);
+          }
+
+          const cancel = () =>
+            window.electronAPI.send("dialog:close", { action: "cancel" });
+          const apply = () =>
+            window.electronAPI.send("dialog:close", {
+              action: "apply",
+              data: {
+                ambient: +ambient.value,
+                diffuse: +diffuse.value,
+                specular: +specular.value,
+              },
+            });
+
+          setTimeout(() => {
+            document
+              .getElementById("close-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("cancel-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("apply-btn")
+              .addEventListener("click", apply);
+
+            createApp({
+              template:
+                '<el-slider v-model="v" :min="0" :max="1" :step="0.01" show-input input-size="small" />',
+              setup: () => ({ v: ambient }),
+            })
+              .use(ElementPlus)
+              .mount("#ambient");
+
+            createApp({
+              template:
+                '<el-slider v-model="v" :min="0" :max="1" :step="0.01" show-input input-size="small" />',
+              setup: () => ({ v: diffuse }),
+            })
+              .use(ElementPlus)
+              .mount("#diffuse");
+
+            createApp({
+              template:
+                '<el-slider v-model="v" :min="0" :max="1" :step="0.01" show-input input-size="small" />',
+              setup: () => ({ v: specular }),
+            })
+              .use(ElementPlus)
+              .mount("#specular");
+
+            createApp({
+              template: '<span style="color:#606266">{{v.toFixed(2)}}</span>',
+              setup: () => ({ v: computed(() => ambient.value) }),
+            })
+              .use(ElementPlus)
+              .mount("#ambient-val");
+
+            createApp({
+              template: '<span style="color:#606266">{{v.toFixed(2)}}</span>',
+              setup: () => ({ v: computed(() => diffuse.value) }),
+            })
+              .use(ElementPlus)
+              .mount("#diffuse-val");
+
+            createApp({
+              template: '<span style="color:#606266">{{v.toFixed(2)}}</span>',
+              setup: () => ({ v: computed(() => specular.value) }),
+            })
+              .use(ElementPlus)
+              .mount("#specular-val");
+          }, 50);
+
+          return { ambient, diffuse, specular };
+        },
+      });
+
+      app.use(ElementPlus).mount("#app");
+    </script>
+  </body>
+</html>

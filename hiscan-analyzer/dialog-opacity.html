@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>设置透明度</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-plus/dist/index.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+      .titlebar-close:hover {
+        background: #eee;
+      }
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+      }
+      .form-item {
+        margin-bottom: 24px;
+      }
+      .form-label {
+        display: block;
+        margin-bottom: 12px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .opacity-preview {
+        height: 80px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        position: relative;
+        background: white;
+      }
+      .opacity-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 6px;
+      }
+      .dialog-footer {
+        padding-top: 16px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">设置透明度</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+    <div id="app">
+      <div class="form-item">
+        <label class="form-label"
+          >透明度 (<span id="opacity-label">50</span>%)</label
+        >
+        <div id="opacity-slider"></div>
+      </div>
+      <div class="opacity-preview">
+        <div class="opacity-overlay" id="overlay"></div>
+      </div>
+      <div class="dialog-footer">
+        <button id="cancel-btn" class="el-button">取消</button>
+        <button id="apply-btn" class="el-button el-button--primary">
+          应用
+        </button>
+      </div>
+    </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script>
+      const { createApp, ref, watch } = Vue;
+      const app = createApp({
+        setup() {
+          const opacity = ref(50);
+          const maskColor = ref("#00bfff");
+
+          const applyInitData = (p) => {
+            if (!p || typeof p !== "object") return;
+            const initialOpacity = p.opacity;
+            const color = p.color;
+            if (
+              typeof initialOpacity === "number" &&
+              !Number.isNaN(initialOpacity)
+            ) {
+              opacity.value = Math.max(
+                0,
+                Math.min(100, Math.round(initialOpacity))
+              );
+            }
+            if (typeof color === "string" && color) maskColor.value = color;
+          };
+
+          // Prefer init-data from main process (works in dev/prod)
+          try {
+            if (window.electronAPI?.on) {
+              window.electronAPI.on("dialog:init-data", (params) => {
+                applyInitData(params);
+                updatePreview();
+                console.log("[Opacity Dialog] init-data:", params);
+              });
+            }
+            window.electronAPI?.send?.("dialog:ready");
+          } catch (e) {
+            console.warn("[Opacity Dialog] init-data hookup failed:", e);
+          }
+
+          // Fallback: URL params
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const initialOpacity = params.get("opacity");
+            const color = params.get("color");
+            if (initialOpacity) opacity.value = parseInt(initialOpacity);
+            if (color) maskColor.value = color;
+          } catch {
+            // ignore
+          }
+
+          const updatePreview = () => {
+            document.getElementById("opacity-label").textContent =
+              opacity.value;
+            const overlay = document.getElementById("overlay");
+            overlay.style.background = maskColor.value;
+            overlay.style.opacity = opacity.value / 100;
+          };
+
+          const cancel = () =>
+            window.electronAPI.send("dialog:close", { action: "cancel" });
+          const apply = () =>
+            window.electronAPI.send("dialog:close", {
+              action: "apply",
+              data: { opacity: opacity.value },
+            });
+
+          setTimeout(() => {
+            document
+              .getElementById("close-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("cancel-btn")
+              .addEventListener("click", cancel);
+            document
+              .getElementById("apply-btn")
+              .addEventListener("click", apply);
+
+            const sliderApp = createApp({
+              template:
+                '<el-slider v-model="value" :min="0" :max="100" show-input @input="onChange" />',
+              setup: () => ({ value: opacity, onChange: updatePreview }),
+            });
+            sliderApp.use(ElementPlus).mount("#opacity-slider");
+
+            updatePreview();
+          }, 100);
+
+          return { opacity };
+        },
+      });
+      app.use(ElementPlus).mount("#app");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>测量结果</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        overflow: hidden;
+      }
+
+      .custom-titlebar {
+        height: 50px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        -webkit-app-region: drag;
+      }
+
+      .titlebar-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .titlebar-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        font-size: 20px;
+      }
+
+      .titlebar-close:hover {
+        background: #eee;
+      }
+
+      #app {
+        width: 100%;
+        height: calc(100vh - 50px);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .hint {
+        font-size: 12px;
+      }
+
+      .table-wrap {
+        flex: 1;
+        overflow: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        padding: 10px 12px;
+        font-weight: 600;
+        z-index: 1;
+      }
+
+      tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #eee;
+      }
+
+      tbody tr:hover {
+        background: #f9f9f9;
+      }
+
+      tbody tr.selected {
+        background: #e3f2fd;
+      }
+
+      .footer {
+        padding-top: 10px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .footer .left {
+        font-size: 12px;
+        color: #909399;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 65%;
+      }
+
+      .btns {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid #409eff;
+        background: #409eff;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .btn.secondary {
+        border-color: #dcdfe6;
+        background: #ffffff;
+        color: #303133;
+      }
+
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .btn:hover:not(:disabled) {
+        filter: brightness(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="custom-titlebar">
+      <div class="titlebar-title">测量结果</div>
+      <div class="titlebar-close" id="close-btn">×</div>
+    </div>
+
+    <div id="app">
+      <div class="hint" id="hint">加载中…</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 42px">
+                <input type="checkbox" id="select-all" />
+              </th>
+              <th style="width: 70px">ID</th>
+              <th style="width: 110px">类型</th>
+              <th style="width: 140px">结果</th>
+              <th style="width: 70px">视图</th>
+              <th style="width: 100px">方向</th>
+              <th style="width: 90px">切片</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr>
+              <td
+                colspan="7"
+                style="text-align: center; color: #909399; padding: 28px 12px"
+              >
+                暂无数据
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footer">
+        <div class="left" id="status">请选择一条测量</div>
+        <div class="btns">
+          <button class="btn secondary" id="jump-btn" disabled>定位跳转</button>
+          <button class="btn secondary" id="profile-btn" disabled>
+            画折线图
+          </button>
+          <button class="btn secondary" id="hist-btn" disabled>画直方图</button>
+          <button class="btn secondary" id="del-btn" disabled>删除选中</button>
+          <button class="btn" id="close-footer-btn">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function toolName(t) {
+        switch (t) {
+          case 1:
+            return "直线";
+          case 2:
+            return "角度";
+          case 3:
+            return "方形";
+          case 4:
+            return "圆形";
+          case 5:
+            return "贝塞尔";
+          case 6:
+            return "任意曲线";
+          default:
+            return String(t);
+        }
+      }
+
+      function formatResult(toolType, value) {
+        if (typeof value !== "number" || !isFinite(value)) return "N/A";
+        if (toolType === 2) return value.toFixed(1) + "°";
+        if (toolType === 3 || toolType === 4) return value.toFixed(2) + " mm²";
+        return value.toFixed(2) + " mm";
+      }
+
+      function sliceDirName(d) {
+        if (d === 0) return "Axial";
+        if (d === 1) return "Coronal";
+        if (d === 2) return "Sagittal";
+        return String(d);
+      }
+
+      const selectedIds = new Set();
+      let primaryId = null;
+
+      function setButtonsEnabled() {
+        const count = selectedIds.size;
+        const jumpEnabled = count === 1;
+        document.getElementById("jump-btn").disabled = !jumpEnabled;
+        document.getElementById("profile-btn").disabled = !jumpEnabled;
+        document.getElementById("hist-btn").disabled = !jumpEnabled;
+        document.getElementById("del-btn").disabled = count === 0;
+      }
+
+      function getPrimaryRow() {
+        if (primaryId == null) return null;
+        return document.querySelector(
+          '#tbody tr[data-id="' + String(primaryId).replace(/"/g, "") + '"]'
+        );
+      }
+
+      function getSelectedData() {
+        if (selectedIds.size !== 1) return null;
+        const tr = getPrimaryRow();
+        if (!tr || !tr.dataset) return null;
+        return {
+          sessionId: tr.dataset.sessionId || "",
+          measurementId: Number(tr.dataset.id || "0"),
+          toolType: Number(tr.dataset.toolType || "0"),
+          isAPR: tr.dataset.isApr === "1",
+          sliceDirection: Number(tr.dataset.sd || "0"),
+          sliceIndex: Number(tr.dataset.si || "0"),
+          centerX: Number(tr.dataset.cx || "0"),
+          centerY: Number(tr.dataset.cy || "0"),
+          centerZ: Number(tr.dataset.cz || "0"),
+          rotX: Number(tr.dataset.rx || "0"),
+          rotY: Number(tr.dataset.ry || "0"),
+          rotZ: Number(tr.dataset.rz || "0"),
+        };
+      }
+
+      function updateStatus() {
+        const st = document.getElementById("status");
+        const count = selectedIds.size;
+        if (count === 0) {
+          st.textContent = "请选择测量（可多选删除）";
+          return;
+        }
+        if (count > 1) {
+          st.textContent = `已选择 ${count} 条测量`;
+          return;
+        }
+        const d = getSelectedData();
+        if (!d) {
+          st.textContent = "已选择 1 条测量";
+          return;
+        }
+        st.textContent = `已选择：ID=${d.measurementId}  类型=${toolName(
+          d.toolType
+        )}  ${d.isAPR ? "APR" : "MPR"}`;
+      }
+
+      function syncSelectAllCheckbox() {
+        const selAll = document.getElementById("select-all");
+        if (!selAll) return;
+        const rows = Array.from(
+          document.querySelectorAll("#tbody tr[data-id]")
+        );
+        if (rows.length === 0) {
+          selAll.checked = false;
+          selAll.indeterminate = false;
+          return;
+        }
+        const selectedCount = rows.filter((tr) =>
+          selectedIds.has(Number(tr.dataset.id || "0"))
+        ).length;
+        selAll.checked = selectedCount === rows.length;
+        selAll.indeterminate = selectedCount > 0 && selectedCount < rows.length;
+      }
+
+      function applySelectionToDom() {
+        for (const tr of document.querySelectorAll("#tbody tr")) {
+          const idStr = tr.dataset?.id;
+          if (!idStr) continue;
+          const id = Number(idStr);
+          const selected = selectedIds.has(id);
+          tr.classList.toggle("selected", selected);
+          const cb = tr.querySelector("input.row-check");
+          if (cb) cb.checked = selected;
+        }
+        if (selectedIds.size === 1) {
+          const only = Array.from(selectedIds)[0];
+          primaryId = only;
+        } else if (selectedIds.size === 0) {
+          primaryId = null;
+        }
+        setButtonsEnabled();
+        updateStatus();
+        syncSelectAllCheckbox();
+      }
+
+      async function loadList() {
+        const hint = document.getElementById("hint");
+        const tbody = document.getElementById("tbody");
+
+        try {
+          const list = await window.visualizationApi.getCompletedMeasurements();
+          const items = Array.isArray(list) ? list : [];
+          hint.textContent = "共 " + items.length + " 条";
+
+          if (items.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="7" style="text-align:center; color:#909399; padding: 28px 12px;">暂无数据</td></tr>';
+            selectedIds.clear();
+            primaryId = null;
+            applySelectionToDom();
+            return;
+          }
+
+          const existingIds = new Set();
+
+          tbody.innerHTML = items
+            .map((m) => {
+              const id = Number(m.id ?? 0);
+              existingIds.add(id);
+              const tt = Number(m.toolType ?? 0);
+              const result = Number(m.result ?? 0);
+              const isAPR = !!m.isAPR;
+              const sd = Number(m.sliceDirection ?? 0);
+              const si = Number(m.sliceIndex ?? 0);
+
+              const sessionId = String(m.sessionId ?? "");
+              const cx = Number(m.centerX ?? 0);
+              const cy = Number(m.centerY ?? 0);
+              const cz = Number(m.centerZ ?? 0);
+              const rx = Number(m.rotX ?? 0);
+              const ry = Number(m.rotY ?? 0);
+              const rz = Number(m.rotZ ?? 0);
+
+              const checked = selectedIds.has(id);
+
+              return (
+                "<tr" +
+                (checked ? ' class="selected"' : "") +
+                ' data-session-id="' +
+                sessionId.replace(/"/g, "&quot;") +
+                '" data-id="' +
+                id +
+                '" data-tool-type="' +
+                tt +
+                '" data-is-apr="' +
+                (isAPR ? "1" : "0") +
+                '" data-sd="' +
+                sd +
+                '" data-si="' +
+                si +
+                '" data-cx="' +
+                cx +
+                '" data-cy="' +
+                cy +
+                '" data-cz="' +
+                cz +
+                '" data-rx="' +
+                rx +
+                '" data-ry="' +
+                ry +
+                '" data-rz="' +
+                rz +
+                '">' +
+                '<td><input type="checkbox" class="row-check" ' +
+                (checked ? "checked" : "") +
+                " /></td>" +
+                "<td>" +
+                id +
+                "</td>" +
+                "<td>" +
+                toolName(tt) +
+                "</td>" +
+                "<td>" +
+                formatResult(tt, result) +
+                "</td>" +
+                "<td>" +
+                (isAPR ? "APR" : "MPR") +
+                "</td>" +
+                "<td>" +
+                sliceDirName(sd) +
+                "</td>" +
+                "<td>" +
+                si +
+                "</td>" +
+                "</tr>"
+              );
+            })
+            .join("");
+
+          // Drop selections that no longer exist
+          for (const id of Array.from(selectedIds)) {
+            if (!existingIds.has(id)) selectedIds.delete(id);
+          }
+          if (primaryId != null && !existingIds.has(primaryId))
+            primaryId = null;
+          applySelectionToDom();
+        } catch (e) {
+          console.error("[dialog-measurements] load failed:", e);
+          hint.textContent = "加载失败";
+          tbody.innerHTML =
+            '<tr><td colspan="7" style="text-align:center; color:#f56c6c; padding: 28px 12px;">加载失败</td></tr>';
+          selectedIds.clear();
+          primaryId = null;
+          applySelectionToDom();
+        }
+      }
+
+      async function doJump() {
+        const d = getSelectedData();
+        if (!d) return;
+        try {
+          if (d.isAPR) {
+            await window.visualizationApi.updateCenter(
+              d.sessionId,
+              d.centerX,
+              d.centerY,
+              d.centerZ
+            );
+            await window.visualizationApi.updateRotation(
+              d.sessionId,
+              d.rotX,
+              d.rotY,
+              d.rotZ
+            );
+          } else if (window.visualizationApi.updateMPRCenter) {
+            let x = d.centerX,
+              y = d.centerY,
+              z = d.centerZ;
+            if (d.sliceDirection === 0) z = d.sliceIndex;
+            else if (d.sliceDirection === 1) y = d.sliceIndex;
+            else if (d.sliceDirection === 2) x = d.sliceIndex;
+            await window.visualizationApi.updateMPRCenter(d.sessionId, x, y, z);
+          }
+          await window.visualizationApi.invalidateAllWindows();
+        } catch (e) {
+          console.warn("[dialog-measurements] jump failed:", e);
+        }
+      }
+
+      async function doDelete() {
+        if (selectedIds.size === 0) return;
+        if (!window.visualizationApi?.deleteMeasurement) {
+          console.warn("[dialog-measurements] deleteMeasurement not available");
+          return;
+        }
+        try {
+          for (const id of Array.from(selectedIds)) {
+            const ok = await window.visualizationApi.deleteMeasurement(id);
+            if (!ok) console.warn("[dialog-measurements] delete failed", id);
+          }
+        } catch (e) {
+          console.warn("[dialog-measurements] delete failed:", e);
+        } finally {
+          selectedIds.clear();
+          primaryId = null;
+          await loadList();
+        }
+      }
+
+      function openChart(chartType) {
+        const d = getSelectedData();
+        if (!d) return;
+        if (!window.nativeBridge?.dialog?.open) {
+          console.warn(
+            "[dialog-measurements] nativeBridge.dialog.open not found"
+          );
+          return;
+        }
+        window.nativeBridge.dialog.open("measurementChart", {
+          sessionId: d.sessionId,
+          measurementId: d.measurementId,
+          toolType: d.toolType,
+          chart: chartType,
+        });
+      }
+
+      const close = () =>
+        window.electronAPI.send("dialog:close", { action: "close" });
+
+      document.getElementById("close-btn").addEventListener("click", close);
+      document
+        .getElementById("close-footer-btn")
+        .addEventListener("click", close);
+
+      document.getElementById("jump-btn").addEventListener("click", doJump);
+      document
+        .getElementById("profile-btn")
+        .addEventListener("click", () => openChart("profile"));
+      document
+        .getElementById("hist-btn")
+        .addEventListener("click", () => openChart("hist"));
+
+      document.getElementById("del-btn").addEventListener("click", doDelete);
+
+      document.getElementById("select-all").addEventListener("change", (ev) => {
+        const checked = !!ev.target.checked;
+        selectedIds.clear();
+        if (checked) {
+          for (const tr of document.querySelectorAll("#tbody tr[data-id]")) {
+            selectedIds.add(Number(tr.dataset.id || "0"));
+          }
+        }
+        primaryId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
+        applySelectionToDom();
+      });
+
+      document.getElementById("tbody").addEventListener("click", (ev) => {
+        const target = ev.target;
+        const tr = target && target.closest ? target.closest("tr") : null;
+        if (!tr || !tr.dataset || !tr.dataset.id) return;
+
+        const id = Number(tr.dataset.id || "0");
+
+        // Checkbox click: toggle without interfering with row selection logic.
+        if (
+          target &&
+          target.classList &&
+          target.classList.contains("row-check")
+        ) {
+          if (target.checked) {
+            selectedIds.add(id);
+            primaryId = id;
+          } else {
+            selectedIds.delete(id);
+            if (primaryId === id) primaryId = null;
+          }
+          applySelectionToDom();
+          return;
+        }
+
+        const rows = Array.from(
+          document.querySelectorAll("#tbody tr[data-id]")
+        );
+        const idx = rows.indexOf(tr);
+
+        if (ev.shiftKey && primaryId != null) {
+          const anchorRow = getPrimaryRow();
+          const anchorIdx = anchorRow ? rows.indexOf(anchorRow) : -1;
+          if (anchorIdx >= 0 && idx >= 0) {
+            const [a, b] =
+              anchorIdx < idx ? [anchorIdx, idx] : [idx, anchorIdx];
+            for (let i = a; i <= b; i++) {
+              const rid = Number(rows[i].dataset.id || "0");
+              selectedIds.add(rid);
+            }
+          } else {
+            selectedIds.clear();
+            selectedIds.add(id);
+          }
+          primaryId = id;
+          applySelectionToDom();
+          return;
+        }
+
+        if (ev.ctrlKey || ev.metaKey) {
+          if (selectedIds.has(id)) selectedIds.delete(id);
+          else selectedIds.add(id);
+          primaryId = id;
+          applySelectionToDom();
+          return;
+        }
+
+        // Default: single select
+        selectedIds.clear();
+        selectedIds.add(id);
+        primaryId = id;
+        applySelectionToDom();
+      });
+
+      window.electronAPI.on("dialog:init-data", () => loadList());
+      window.electronAPI.send("dialog:ready");
+      setTimeout(() => {
+        if (document.getElementById("hint").textContent === "加载中…") {
+          loadList();
+        }
+      }, 300);
+
+      // Initial button state
+      setButtonsEnabled();
+    </script>
+  </body>
+</html>

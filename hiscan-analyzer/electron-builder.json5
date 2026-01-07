@@ -1,0 +1,51 @@
+// @see - https://www.electron.build/configuration/configuration
+{
+  $schema: "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  appId: "YourAppID",
+  asar: true,
+  productName: "YourAppName",
+  directories: {
+    output: "release/${version}",
+  },
+  files: ["dist", "dist-electron"],
+  extraResources: [
+    {
+      from: "native/opengl-child/build/Release/opengl_child.node",
+      to: "native/opengl_child.node",
+    },
+    {
+      from: "native/console-dll/build/Release/console_dll_addon.node",
+      to: "native/console_dll_addon.node",
+    },
+    {
+      from: "native/console-dll/build/Release/*.dll",
+      to: "native",
+    },
+  ],
+  mac: {
+    target: ["dmg"],
+    artifactName: "${productName}-Mac-${version}-Installer.${ext}",
+  },
+  win: {
+    // Avoid downloading/extracting winCodeSign (requires symlink privilege on some Windows setups).
+    // This skips signing and executable resource editing; packaging still works.
+    signAndEditExecutable: false,
+    target: [
+      {
+        target: "nsis",
+        arch: ["x64"],
+      },
+    ],
+    artifactName: "${productName}-Windows-${version}-Setup.${ext}",
+  },
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false,
+  },
+  linux: {
+    target: ["AppImage"],
+    artifactName: "${productName}-Linux-${version}.${ext}",
+  },
+}

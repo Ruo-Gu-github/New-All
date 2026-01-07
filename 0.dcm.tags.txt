@@ -1,0 +1,54 @@
+DICOM: D:\2025-09-25 新系列\0.dcm
+
+== File Meta ==
+(0002,0000) VR=UL   FileMetaInformationGroupLength File Meta Information Group Length       = 188
+(0002,0001) VR=OB   FileMetaInformationVersion     File Meta Information Version            = <bytes length=2>
+(0002,0002) VR=UI   MediaStorageSOPClassUID        Media Storage SOP Class UID              = 1.2.840.10008.5.1.4.1.1.7
+(0002,0003) VR=UI   MediaStorageSOPInstanceUID     Media Storage SOP Instance UID           = 1.2.0.20200819.111533.ËïÑ§·¼.20200819.112224.1
+(0002,0010) VR=UI   TransferSyntaxUID              Transfer Syntax UID                      = 1.2.840.10008.1.2
+(0002,0012) VR=UI   ImplementationClassUID         Implementation Class UID                 = 1.2.276.0.7230010.3.0.3.6.1
+(0002,0013) VR=SH   ImplementationVersionName      Implementation Version Name              = OFFIS_DCMTK_361
+
+== Dataset (all elements, including sequence items) ==
+(0008,0016) VR=UI   SOPClassUID                    SOP Class UID                            = 1.2.840.10008.5.1.4.1.1.7
+(0008,0018) VR=UI   SOPInstanceUID                 SOP Instance UID                         = 1.2.0.20200819.111533.ËïÑ§·¼.20200819.112224.1
+(0008,0020) VR=DA   StudyDate                      Study Date                               = 20200819
+(0008,0023) VR=DA   ContentDate                    Content Date                             = 20200819
+(0008,0030) VR=TM   StudyTime                      Study Time                               = 112224
+(0008,0050) VR=SH   AccessionNumber                Accession Number                         = 0
+(0008,0060) VR=CS   Modality                       Modality                                 = Micro CT
+(0008,0064) VR=CS   ConversionType                 Conversion Type                          = WSD
+(0008,0090) VR=PN   ReferringPhysicianName         Referring Physician's Name               = LI
+(0010,0010) VR=PN   PatientName                    Patient's Name                           = ËïÑ§·¼
+(0010,0020) VR=LO   PatientID                      Patient ID                               = 0001
+(0010,0030) VR=DA   PatientBirthDate               Patient's Birth Date                     = 20160616
+(0010,0040) VR=CS   PatientSex                     Patient's Sex                            = Male
+(0018,0050) VR=DS   SliceThickness                 Slice Thickness                          = 0.069400
+(0018,0060) VR=DS   KVP                            KVP                                      = 80
+(0018,0088) VR=DS   SpacingBetweenSlices           Spacing Between Slices                   = 0.069400
+(0018,1110) VR=DS   DistanceSourceToDetector       Distance Source to Detector              = 1547
+(0018,1150) VR=IS   ExposureTime                   Exposure Time                            = 50
+(0018,1151) VR=IS   XRayTubeCurrent                X-Ray Tube Current                       = 100
+(0018,701A) VR=DS   DetectorBinning                Detector Binning                         = 2
+(0020,000D) VR=UI   StudyInstanceUID               Study Instance UID                       = 1.3.6.1.4.1.9590.100.1.2.260555564611913934305327666460578366395
+(0020,000E) VR=UI   SeriesInstanceUID              Series Instance UID                      = 1.2.0.20200819.111533.ËïÑ§·¼
+(0020,0010) VR=SH   StudyID                        Study ID                                 = 0001
+(0020,0011) VR=IS   SeriesNumber                   Series Number                            = 0
+(0020,0013) VR=IS   InstanceNumber                 Instance Number                          = 0
+(0020,0019) VR=IS   ItemNumber                     Item Number                              = 1.0
+(0020,0020) VR=CS   PatientOrientation             Patient Orientation                      = 
+(0020,0032) VR=DS   ImagePositionPatient           Image Position (Patient)                 = [-26.024999, -26.024999, 5.343800]
+(0028,0002) VR=US   SamplesPerPixel                Samples per Pixel                        = 1
+(0028,0004) VR=CS   PhotometricInterpretation      Photometric Interpretation               = MONOCHROME2
+(0028,0006) VR=US   PlanarConfiguration            Planar Configuration                     = 0
+(0028,0010) VR=US   Rows                           Rows                                     = 512
+(0028,0011) VR=US   Columns                        Columns                                  = 512
+(0028,0030) VR=DS   PixelSpacing                   Pixel Spacing                            = [0.069400, 0.069400]
+(0028,0100) VR=US   BitsAllocated                  Bits Allocated                           = 16
+(0028,0101) VR=US   BitsStored                     Bits Stored                              = 16
+(0028,0102) VR=US   HighBit                        High Bit                                 = 15
+(0028,0103) VR=US   PixelRepresentation            Pixel Representation                     = 0
+(0028,0106) VR=US   SmallestImagePixelValue        Smallest Image Pixel Value               = 0
+(0028,0107) VR=US   LargestImagePixelValue         Largest Image Pixel Value                = 4095
+(0028,1053) VR=DS   RescaleSlope                   Rescale Slope                            = 1
+(7FE0,0010) VR=OW   PixelData                      Pixel Data                               = <bytes length=524288>

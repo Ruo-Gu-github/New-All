@@ -1,0 +1,4 @@
+- [x] Update preload to prepend VTK DLL directory to PATH before requiring the native module.
+- [x] Provide runtime configuration for the VTK bin path via environment variable or JSON so dev/prod builds can locate DLLs.
+- [x] Adjust native loader to emit clearer errors when VTK DLLs are missing at runtime.
+- [x] Document VTK DLL deployment steps in README for development and packaged builds.
