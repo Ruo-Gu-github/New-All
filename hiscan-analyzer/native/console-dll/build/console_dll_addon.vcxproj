@@ -48,8 +48,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus -std:c++17 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:__cplusplus -std:c++20 /Zm2000 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -60,7 +60,7 @@
       <OmitFramePointers>false</OmitFramePointers>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;_FILE_OFFSET_BITS=64;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;NOMINMAX;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StringPooling>true</StringPooling>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -72,7 +72,7 @@
       <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;delayimp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\30.5.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\25.2.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\..\ConsoleDllTest\Dlls\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
       <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -85,14 +85,14 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;_FILE_OFFSET_BITS=64;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;NOMINMAX;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;DEBUG;_DEBUG;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus -std:c++17 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:__cplusplus -std:c++20 /Zm2000 /std:c++17 %(AdditionalOptions)</AdditionalOptions>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4351;4355;4800;4251;4275;4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -105,7 +105,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <Optimization>Full</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;_FILE_OFFSET_BITS=64;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;NOMINMAX;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <StringPooling>true</StringPooling>
@@ -118,7 +118,7 @@
       <AdditionalOptions>/LTCG:INCREMENTAL %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;delayimp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\30.5.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;DelayImp.lib;&quot;C:\\Users\\msxwx\\AppData\\Local\\node-gyp\\Cache\\25.2.1\\x64\\node.lib&quot;;DllDicom.lib;DllCore.lib;DllImageProcessing.lib;DllVisualization.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\..\ConsoleDllTest\Dlls\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/LTCG:INCREMENTAL /ignore:4199 %(AdditionalOptions)</AdditionalOptions>
       <DelayLoadDLLs>node.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -131,8 +131,8 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\30.5.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;ELECTRON_ENSURE_CONFIG_GYPI;USING_ELECTRON_CONFIG_GYPI;V8_COMPRESS_POINTERS;V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE;V8_31BIT_SMIS_ON_64BIT_ARCH;V8_ENABLE_SANDBOX;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;OPENSSL_NO_ASM;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\include\node;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\src;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\config;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\openssl\openssl\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\uv\include;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\zlib;C:\Users\msxwx\AppData\Local\node-gyp\Cache\25.2.1\deps\v8\include;D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-addon-api;..\..\..\..\ConsoleDllTest\Common;..\..\..\..\ConsoleDllTest\DllDicom;..\..\..\..\ConsoleDllTest\DllImageProcessing;..\..\..\..\ConsoleDllTest\DllVisualization;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NODE_GYP_MODULE_NAME=console_dll_addon;USING_UV_SHARED=1;USING_V8_SHARED=1;V8_DEPRECATION_WARNINGS=1;_GLIBCXX_USE_CXX11_ABI=1;_FILE_OFFSET_BITS=64;WIN32;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_HAS_EXCEPTIONS=0;NOMINMAX;OPENSSL_NO_PINSHARED;OPENSSL_THREADS;NAPI_DISABLE_CPP_EXCEPTIONS;BUILDING_NODE_EXTENSION;HOST_BINARY=&quot;node.exe&quot;;%(PreprocessorDefinitions);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -157,7 +157,7 @@
     <ClCompile Include="..\src\VascularAnalysis.cpp">
       <ObjectFileName>$(IntDir)\src\VascularAnalysis.obj</ObjectFileName>
     </ClCompile>
-    <ClCompile Include="D:\2025-09-25 新系列\hiscan-analyzer\node_modules\node-gyp\src\win_delay_load_hook.cc"/>
+    <ClCompile Include="D:\2025-09-25 新系列\hiscan-analyzer\native\console-dll\node_modules\node-gyp\src\win_delay_load_hook.cc"/>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\ConsoleDllTest\Dlls\bin\DllDicom.dll">

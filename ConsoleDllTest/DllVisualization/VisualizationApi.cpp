@@ -17580,8 +17580,12 @@ VIZ_API NativeResult MPR_UpdateMaskData(
 // ==================== Window Screenshot by HWND Implementation ====================
 
 #ifdef _WIN32
+// Windows and GDI+ headers must be included in correct order
+#include <windows.h>
+#include <objidl.h>
 #include <gdiplus.h>
 #pragma comment(lib, "gdiplus.lib")
+using namespace Gdiplus;
 
 // Helper: Get encoder CLSID for image format
 static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid) {
