@@ -3972,6 +3972,69 @@ Napi::Value Set3DPrimitiveVisible(const Napi::CallbackInfo& info) {
     if (it == g_WindowHandles.end() || !it->second) return Napi::Boolean::New(env, false);
     return Napi::Boolean::New(env, Window3D_SetPrimitiveVisible(it->second, primId, visible) == NATIVE_OK);
 }
+
+// ==================== Window Screenshot by HWND ====================
+
+static Napi::Value CaptureWindowByHWND(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 1 || !info[0].IsNumber()) {
+        Napi::TypeError::New(env, "Expected HWND as number").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    // HWND as integer (pointer)
+    int64_t hwndValue = info[0].As<Napi::Number>().Int64Value();
+    void* hwnd = reinterpret_cast<void*>(hwndValue);
+    
+    int width = 0, height = 0;
+    void* pixelData = Window_CaptureByHWND(hwnd, &width, &height);
+    
+    if (!pixelData) {
+        Napi::Error::New(env, "Failed to capture window").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    // Create Node.js Buffer from pixel data
+    Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, 
+        static_cast<uint8_t*>(pixelData), 
+        width * height * 4);
+    
+    // Free the pixel data
+    free(pixelData);
+    
+    // Return object with width, height, and buffer
+    Napi::Object result = Napi::Object::New(env);
+    result.Set("width", Napi::Number::New(env, width));
+    result.Set("height", Napi::Number::New(env, height));
+    result.Set("data", buffer);
+    
+    return result;
+}
+
+static Napi::Value SaveWindowScreenshotByHWND(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 2 || !info[0].IsNumber() || !info[1].IsString()) {
+        Napi::TypeError::New(env, "Expected (HWND as number, filepath)").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    
+    int64_t hwndValue = info[0].As<Napi::Number>().Int64Value();
+    void* hwnd = reinterpret_cast<void*>(hwndValue);
+    std::string filepath = info[1].As<Napi::String>().Utf8Value();
+    
+    NativeResult result = Window_SaveScreenshotByHWND(hwnd, filepath.c_str());
+    
+    if (result != NATIVE_OK) {
+        std::string errorMsg = "Failed to save screenshot: ";
+        errorMsg += Visualization_GetLastError();
+        Napi::Error::New(env, errorMsg).ThrowAsJavaScriptException();
+    }
+    
+    return env.Undefined();
+}
+
 // ==================== 模块初始�?====================
 
 void InitVisualizationModule(Napi::Env env, Napi::Object& exports) {
@@ -4094,4 +4157,8 @@ void InitVisualizationModule(Napi::Env env, Napi::Object& exports) {
     exports.Set("set3DSceneTransform", Napi::Function::New(env, Set3DSceneTransform));
     exports.Set("set3DPrimitiveColor", Napi::Function::New(env, Set3DPrimitiveColor));
     exports.Set("set3DPrimitiveVisible", Napi::Function::New(env, Set3DPrimitiveVisible));
+    
+    // Window screenshot by HWND
+    exports.Set("captureWindowByHWND", Napi::Function::New(env, CaptureWindowByHWND));
+    exports.Set("saveWindowScreenshotByHWND", Napi::Function::New(env, SaveWindowScreenshotByHWND));
 }

@@ -898,6 +898,18 @@ extern "C" {
     /// 绘制垂直比例尺（NanoVG，仅内容，需要外部调用 nvgBeginFrame/EndFrame）
     void DrawVerticalScaleBarNVG_InFrame(int winWidth, int winHeight, int sliceDirection, float zoomFactor, VolumeHandle volume);
 
+    // ==================== Window Screenshot API ====================
+    
+    /// Capture window content by HWND (Windows native screenshot)
+    /// Returns RGBA pixel data. Caller must free() the returned buffer.
+    /// width/height: output image dimensions
+    /// Returns NULL on failure
+    VIZ_API void* Window_CaptureByHWND(void* hwnd, int* width, int* height);
+    
+    /// Save window screenshot to PNG file by HWND
+    /// Returns NATIVE_OK on success
+    VIZ_API NativeResult Window_SaveScreenshotByHWND(void* hwnd, const char* filepath);
+
 #ifdef __cplusplus
 }
 #endif

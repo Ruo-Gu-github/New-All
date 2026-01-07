@@ -17576,3 +17576,207 @@ VIZ_API NativeResult MPR_UpdateMaskData(
     ctx->maskRevision++;
     return NATIVE_OK;
 }
+
+// ==================== Window Screenshot by HWND Implementation ====================
+
+#ifdef _WIN32
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
+
+// Helper: Get encoder CLSID for image format
+static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid) {
+    UINT num = 0;
+    UINT size = 0;
+    Gdiplus::GetImageEncodersSize(&num, &size);
+    if (size == 0) return -1;
+
+    Gdiplus::ImageCodecInfo* pImageCodecInfo = (Gdiplus::ImageCodecInfo*)(malloc(size));
+    if (pImageCodecInfo == nullptr) return -1;
+
+    Gdiplus::GetImageEncoders(num, size, pImageCodecInfo);
+    for (UINT j = 0; j < num; ++j) {
+        if (wcscmp(pImageCodecInfo[j].MimeType, format) == 0) {
+            *pClsid = pImageCodecInfo[j].Clsid;
+            free(pImageCodecInfo);
+            return j;
+        }
+    }
+    free(pImageCodecInfo);
+    return -1;
+}
+
+VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight) {
+    if (!hwndPtr || !outWidth || !outHeight) {
+        SetLastError("Invalid arguments");
+        return nullptr;
+    }
+
+    HWND hwnd = static_cast<HWND>(hwndPtr);
+    
+    // Get window client area size
+    RECT rect;
+    if (!GetClientRect(hwnd, &rect)) {
+        SetLastError("Failed to get window rect");
+        return nullptr;
+    }
+
+    int width = rect.right - rect.left;
+    int height = rect.bottom - rect.top;
+    
+    if (width <= 0 || height <= 0) {
+        SetLastError("Invalid window size");
+        return nullptr;
+    }
+
+    // Create compatible DCs
+    HDC hdcWindow = GetDC(hwnd);
+    if (!hdcWindow) {
+        SetLastError("Failed to get window DC");
+        return nullptr;
+    }
+
+    HDC hdcMemory = CreateCompatibleDC(hdcWindow);
+    if (!hdcMemory) {
+        ReleaseDC(hwnd, hdcWindow);
+        SetLastError("Failed to create compatible DC");
+        return nullptr;
+    }
+
+    // Create bitmap
+    HBITMAP hbmScreen = CreateCompatibleBitmap(hdcWindow, width, height);
+    if (!hbmScreen) {
+        DeleteDC(hdcMemory);
+        ReleaseDC(hwnd, hdcWindow);
+        SetLastError("Failed to create compatible bitmap");
+        return nullptr;
+    }
+
+    SelectObject(hdcMemory, hbmScreen);
+
+    // Capture window content
+    // PrintWindow works even if window is obscured
+    if (!PrintWindow(hwnd, hdcMemory, PW_CLIENTONLY)) {
+        // Fallback to BitBlt if PrintWindow fails
+        if (!BitBlt(hdcMemory, 0, 0, width, height, hdcWindow, 0, 0, SRCCOPY)) {
+            DeleteObject(hbmScreen);
+            DeleteDC(hdcMemory);
+            ReleaseDC(hwnd, hdcWindow);
+            SetLastError("Failed to capture window content");
+            return nullptr;
+        }
+    }
+
+    // Get bitmap data
+    BITMAPINFOHEADER bi = {};
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth = width;
+    bi.biHeight = -height;  // Top-down DIB
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+
+    size_t dataSize = width * height * 4;
+    void* pixelData = malloc(dataSize);
+    
+    if (!pixelData) {
+        DeleteObject(hbmScreen);
+        DeleteDC(hdcMemory);
+        ReleaseDC(hwnd, hdcWindow);
+        SetLastError("Failed to allocate pixel buffer");
+        return nullptr;
+    }
+
+    if (!GetDIBits(hdcMemory, hbmScreen, 0, height, pixelData, 
+                   (BITMAPINFO*)&bi, DIB_RGB_COLORS)) {
+        free(pixelData);
+        DeleteObject(hbmScreen);
+        DeleteDC(hdcMemory);
+        ReleaseDC(hwnd, hdcWindow);
+        SetLastError("Failed to get bitmap bits");
+        return nullptr;
+    }
+
+    // Cleanup
+    DeleteObject(hbmScreen);
+    DeleteDC(hdcMemory);
+    ReleaseDC(hwnd, hdcWindow);
+
+    // Convert BGRA to RGBA
+    unsigned char* pixels = static_cast<unsigned char*>(pixelData);
+    for (int i = 0; i < width * height; i++) {
+        unsigned char temp = pixels[i * 4 + 0];  // B
+        pixels[i * 4 + 0] = pixels[i * 4 + 2];   // R
+        pixels[i * 4 + 2] = temp;                // B
+    }
+
+    *outWidth = width;
+    *outHeight = height;
+    return pixelData;
+}
+
+VIZ_API NativeResult Window_SaveScreenshotByHWND(void* hwndPtr, const char* filepath) {
+    if (!hwndPtr || !filepath) {
+        SetLastError("Invalid arguments");
+        return NATIVE_E_INVALID_ARGUMENT;
+    }
+
+    int width, height;
+    void* pixelData = Window_CaptureByHWND(hwndPtr, &width, &height);
+    
+    if (!pixelData) {
+        return NATIVE_E_FAIL;
+    }
+
+    // Initialize GDI+
+    static bool gdiplusInitialized = false;
+    static ULONG_PTR gdiplusToken = 0;
+    
+    if (!gdiplusInitialized) {
+        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+        Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr);
+        gdiplusInitialized = true;
+    }
+
+    // Create GDI+ bitmap from pixel data
+    Gdiplus::Bitmap bitmap(width, height, width * 4, 
+                          PixelFormat32bppRGB, 
+                          static_cast<BYTE*>(pixelData));
+
+    // Get PNG encoder
+    CLSID pngClsid;
+    if (GetEncoderClsid(L"image/png", &pngClsid) == -1) {
+        free(pixelData);
+        SetLastError("PNG encoder not found");
+        return NATIVE_E_FAIL;
+    }
+
+    // Convert filepath to wide string
+    int len = MultiByteToWideChar(CP_UTF8, 0, filepath, -1, nullptr, 0);
+    std::vector<wchar_t> wpath(len);
+    MultiByteToWideChar(CP_UTF8, 0, filepath, -1, wpath.data(), len);
+
+    // Save to file
+    Gdiplus::Status status = bitmap.Save(wpath.data(), &pngClsid, nullptr);
+    
+    free(pixelData);
+
+    if (status != Gdiplus::Ok) {
+        SetLastError("Failed to save PNG file");
+        return NATIVE_E_FAIL;
+    }
+
+    return NATIVE_OK;
+}
+
+#else
+// Non-Windows stub implementation
+VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight) {
+    SetLastError("Window capture not supported on this platform");
+    return nullptr;
+}
+
+VIZ_API NativeResult Window_SaveScreenshotByHWND(void* hwndPtr, const char* filepath) {
+    SetLastError("Window capture not supported on this platform");
+    return NATIVE_E_NOT_SUPPORTED;
+}
+#endif
