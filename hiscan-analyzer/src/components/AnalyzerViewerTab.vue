@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "element-plus/dist/index.css";
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, shallowRef, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   ElButton,
   ElCard,
@@ -143,6 +143,10 @@ const layoutChoice = ref<ViewerLayoutChoice>("quad");
 const sessionId = ref<string>("");
 const isLoaded = ref(false);
 
+// Native child HWNDs for each view (used for HWND-based screenshots)
+// IMPORTANT: must be a plain cloneable object for Electron IPC (no Vue Proxy)
+const viewHwnds = shallowRef<Record<string, string>>({});
+
 // ==================== 双向同步（Native -> Electron）====================
 let aprStatePollTimer: number | null = null;
 let suppressAprUiWatch = false;
@@ -242,6 +246,27 @@ async function loadAPRViews(folderPath: string) {
       (result.windowIdSagittal || result.hwndSagittal) &&
       (result.windowId3D || result.hwnd3D)
     ) {
+      // Store HWNDs (string) for screenshot capture by window handle.
+      viewHwnds.value = {
+        axial: result.hwndAxial ? String(result.hwndAxial) : "",
+        coronal: result.hwndCoronal ? String(result.hwndCoronal) : "",
+        sagittal: result.hwndSagittal ? String(result.hwndSagittal) : "",
+        "3d": result.hwnd3D ? String(result.hwnd3D) : "",
+        // Also keep windowId keys as a fallback for downstream lookup.
+        ...(result.windowIdAxial && result.hwndAxial
+          ? { [String(result.windowIdAxial)]: String(result.hwndAxial) }
+          : {}),
+        ...(result.windowIdCoronal && result.hwndCoronal
+          ? { [String(result.windowIdCoronal)]: String(result.hwndCoronal) }
+          : {}),
+        ...(result.windowIdSagittal && result.hwndSagittal
+          ? { [String(result.windowIdSagittal)]: String(result.hwndSagittal) }
+          : {}),
+        ...(result.windowId3D && result.hwnd3D
+          ? { [String(result.windowId3D)]: String(result.hwnd3D) }
+          : {}),
+      };
+
       // 嵌入阶段必须保证 4 个视图容器都在 DOM 中
       layoutChoice.value = "quad";
 
@@ -281,6 +306,7 @@ async function loadAPRViews(folderPath: string) {
 
     // 初始化裁切框（使用体数据尺寸）
     await window.visualizationApi.setAPRCropBox(
+      sessionId.value,
       result.width || volumeWidth.value,
       result.height || volumeHeight.value,
       result.depth || volumeDepth.value
@@ -505,7 +531,7 @@ async function toggleCrosshair() {
         await window.visualizationApi.setWindowCropBoxVisible(id, false);
       }
     }
-    await window.visualizationApi.enableAPRCropBox(false);
+    await window.visualizationApi.enableAPRCropBox(sessionId.value, false);
 
     // 切换到定位线工具
     currentToolType.value = 0;
@@ -532,7 +558,7 @@ async function toggleCropBox() {
     }
 
     // 启用裁切框
-    await window.visualizationApi.enableAPRCropBox(true);
+    await window.visualizationApi.enableAPRCropBox(sessionId.value, true);
 
     // 仅对当前 session 的 4 个窗口显示裁切框（避免串到 ROI 编辑等其他实例）
     if (sessionId.value) {
@@ -563,7 +589,7 @@ async function toggleCropBox() {
         await window.visualizationApi.setWindowCropBoxVisible(id, false);
       }
     }
-    await window.visualizationApi.enableAPRCropBox(false);
+    await window.visualizationApi.enableAPRCropBox(sessionId.value, false);
   }
 }
 
@@ -619,7 +645,7 @@ async function executeCrop() {
           await window.visualizationApi.setWindowCropBoxVisible(id, false);
         }
       }
-      await window.visualizationApi.enableAPRCropBox(false);
+      await window.visualizationApi.enableAPRCropBox(sessionId.value, false);
       // 刷新视图
       await window.visualizationApi.invalidateAllWindows();
 
@@ -647,7 +673,9 @@ async function openCropSettingsDialog() {
 
   try {
     // 获取当前裁切设置
-    const cropSettings = await window.visualizationApi.getCropSettings();
+    const cropSettings = await window.visualizationApi.getCropSettings(
+      sessionId.value
+    );
     const volumeSpacing = await window.visualizationApi.getVolumeSpacing(
       sessionId.value
     );
@@ -761,6 +789,7 @@ async function updateCropSettings() {
 
     // 设置裁切框尺寸
     await window.visualizationApi.setCropBoxSize(
+      sessionId.value,
       sizeX,
       sizeY,
       sizeZ,
@@ -863,7 +892,7 @@ async function setMeasurementTool(toolType: number) {
       await window.visualizationApi.setWindowCropBoxVisible(id, false);
     }
   }
-  await window.visualizationApi.enableAPRCropBox(false);
+  await window.visualizationApi.enableAPRCropBox(sessionId.value, false);
   if (sessionId.value) {
     try {
       await window.visualizationApi.setCrosshairVisible(sessionId.value, false);
@@ -1000,6 +1029,7 @@ async function confirmScreenshotCapture() {
       sessionId.value,
       String(folderPath),
       selection,
+      { ...viewHwnds.value },
       width,
       height
     );
@@ -1014,9 +1044,9 @@ async function confirmScreenshotCapture() {
           message: `✅ 截图完成！共 ${successCount} 个视图，保存在 ${r.outputDir}`,
         });
       } else {
-        const failedViews = r.errors?.map((e) => e.view).join(", ") || "";
+        const failedViews = r.errors?.map((e: any) => e.view).join(", ") || "";
         const errorDetails =
-          r.errors?.map((e) => `${e.view}: ${e.error}`) || [];
+          r.errors?.map((e: any) => `${e.view}: ${e.error}`) || [];
         showScreenshotStatus({
           show: true,
           type: "error",
@@ -1444,7 +1474,8 @@ onMounted(async () => {
             const r = await window.visualizationApi?.captureAPRScreenshots?.(
               sessionId.value,
               folderPath,
-              selection
+              selection,
+              { ...viewHwnds.value }
             );
             if (r?.success) {
               ElMessage.success(`截图成功，保存在 ${r.outputDir}`);
@@ -1525,6 +1556,7 @@ onMounted(async () => {
 
             if (aprState && sizeX > 0 && sizeY > 0 && sizeZ > 0) {
               await window.visualizationApi.setCropBoxSize(
+                sessionId.value,
                 sizeX,
                 sizeY,
                 sizeZ,
@@ -1679,7 +1711,9 @@ onMounted(async () => {
         // 同步裁切框状态（从Native获取并更新UI参数）- 放在进度/旋转检查之前
         if (showCropBox.value && now - lastCropUiUpdateAt > 200) {
           try {
-            const cropState = await window.visualizationApi.getCropSettings();
+            const cropState = await window.visualizationApi.getCropSettings(
+              sessionId.value
+            );
             if (cropState && cropState.cropBox) {
               const box = cropState.cropBox;
               const sizeXPx = Math.abs(box.xEnd - box.xStart);

@@ -120,6 +120,7 @@ contextBridge.exposeInMainWorld("visualizationApi", {
     sessionId: string,
     folderPath: string,
     selection: string[],
+    windowHwndsOrWidth?: Record<string, string> | number,
     width?: number,
     height?: number
   ) =>
@@ -128,6 +129,7 @@ contextBridge.exposeInMainWorld("visualizationApi", {
       sessionId,
       folderPath,
       selection,
+      windowHwndsOrWidth,
       width,
       height
     ),
@@ -190,6 +192,7 @@ contextBridge.exposeInMainWorld("visualizationApi", {
   getCropCylinderDirection: () =>
     ipcRenderer.invoke("viz:get-crop-cylinder-direction"),
   setCropBoxSize: (
+    sessionId: string,
     sizeX: number,
     sizeY: number,
     sizeZ: number,
@@ -199,6 +202,7 @@ contextBridge.exposeInMainWorld("visualizationApi", {
   ) =>
     ipcRenderer.invoke(
       "viz:set-crop-box-size",
+      sessionId,
       sizeX,
       sizeY,
       sizeZ,
@@ -206,7 +210,8 @@ contextBridge.exposeInMainWorld("visualizationApi", {
       volumeHeight,
       volumeDepth
     ),
-  getCropSettings: () => ipcRenderer.invoke("viz:get-crop-settings"),
+  getCropSettings: (sessionId?: string) =>
+    ipcRenderer.invoke("viz:get-crop-settings", sessionId),
 
   processWindowEvents: () => ipcRenderer.invoke("viz:process-window-events"),
   embedWindow: (
@@ -286,11 +291,17 @@ contextBridge.exposeInMainWorld("visualizationApi", {
     ipcRenderer.invoke("viz:set-window-tool-type", windowId, toolType),
   setWindowCropBoxVisible: (windowId: string, visible: boolean) =>
     ipcRenderer.invoke("viz:set-window-crop-box-visible", windowId, visible),
-  enableAPRCropBox: (enable: boolean) =>
-    ipcRenderer.invoke("viz:enable-apr-crop-box", enable),
-  setAPRCropBox: (width: number, height: number, depth: number) =>
-    ipcRenderer.invoke("viz:set-apr-crop-box", width, height, depth),
+  enableAPRCropBox: (sessionId: string, enable: boolean) =>
+    ipcRenderer.invoke("viz:enable-apr-crop-box", sessionId, enable),
+  setAPRCropBox: (
+    sessionId: string,
+    width: number,
+    height: number,
+    depth: number
+  ) =>
+    ipcRenderer.invoke("viz:set-apr-crop-box", sessionId, width, height, depth),
   setAPRCropBoxRange: (
+    sessionId: string,
     xStart: number,
     xEnd: number,
     yStart: number,
@@ -300,6 +311,7 @@ contextBridge.exposeInMainWorld("visualizationApi", {
   ) =>
     ipcRenderer.invoke(
       "viz:set-apr-crop-box-range",
+      sessionId,
       xStart,
       xEnd,
       yStart,
@@ -307,8 +319,10 @@ contextBridge.exposeInMainWorld("visualizationApi", {
       zStart,
       zEnd
     ),
-  getAPRCropBox: () => ipcRenderer.invoke("viz:get-apr-crop-box"),
-  isAPRCropBoxEnabled: () => ipcRenderer.invoke("viz:is-apr-crop-box-enabled"),
+  getAPRCropBox: (sessionId: string) =>
+    ipcRenderer.invoke("viz:get-apr-crop-box", sessionId),
+  isAPRCropBoxEnabled: (sessionId: string) =>
+    ipcRenderer.invoke("viz:is-apr-crop-box-enabled", sessionId),
 
   getCompletedMeasurements: () =>
     ipcRenderer.invoke("viz:get-completed-measurements"),

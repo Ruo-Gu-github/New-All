@@ -13,6 +13,7 @@ typedef VolumeContext VolumeData;
 #include <vector>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <chrono>
 #include <fstream>
 #include <cstring>
@@ -82,6 +83,17 @@ static std::map<std::string, MPRHandle> g_MprHandles;
 static std::map<std::string, VolumeHandle> g_VolumeHandles;
 static std::map<std::string, WindowHandle> g_WindowHandles; // 存储窗口句柄
 
+struct CropResultMeta {
+    int width = 0;
+    int height = 0;
+    int depth = 0;
+    float spacingX = 1.0f;
+    float spacingY = 1.0f;
+    float spacingZ = 1.0f;
+};
+
+static std::map<std::string, CropResultMeta> g_LastCropMetaBySession;
+
 struct VolumeCacheEntry {
     VolumeHandle volume = nullptr;
     int refCount = 0;
@@ -100,6 +112,37 @@ static uint64_t NowMs() {
     return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()
     ).count());
+}
+
+static void CropTraceNative(const std::string& tag, const std::string& sessionId, const std::string& message) {
+    const uint64_t t = NowMs();
+    std::ostringstream oss;
+    oss << "[CropTraceNative] " << t << " " << tag;
+    if (!sessionId.empty()) {
+        oss << " sessionId=" << sessionId;
+    }
+    if (!message.empty()) {
+        oss << " " << message;
+    }
+    oss << "\n";
+    const std::string line = oss.str();
+    std::cerr << line;
+    std::cerr.flush();
+#ifdef _WIN32
+    OutputDebugStringA(line.c_str());
+#endif
+}
+
+static std::string CropBoxToString(const std::string& sessionId) {
+    float xStart = 0, xEnd = 0, yStart = 0, yEnd = 0, zStart = 0, zEnd = 0;
+    if (!sessionId.empty()) {
+        APR_GetCropBoxForSession(sessionId.c_str(), &xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    } else {
+        APR_GetCropBox(&xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    }
+    std::ostringstream oss;
+    oss << "cropBox={x:[" << xStart << "," << xEnd << "] y:[" << yStart << "," << yEnd << "] z:[" << zStart << "," << zEnd << "]}";
+    return oss.str();
 }
 
 static void EvictUnusedVolumesIfNeeded() {
@@ -2754,14 +2797,50 @@ Napi::Value GetSessionProjectionMode(const Napi::CallbackInfo& info) {
 // 启用/禁用 APR 裁切�?
 Napi::Value EnableAPRCropBox(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    
-    if (info.Length() < 1 || !info[0].IsBoolean()) {
-        Napi::TypeError::New(env, "Expected (enable: boolean)").ThrowAsJavaScriptException();
+
+    std::string sessionId;
+    bool enable = false;
+
+    if (info.Length() >= 2 && info[0].IsString() && info[1].IsBoolean()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+        enable = info[1].As<Napi::Boolean>().Value();
+    } else if (info.Length() >= 1 && info[0].IsBoolean()) {
+        enable = info[0].As<Napi::Boolean>().Value();
+    } else {
+        Napi::TypeError::New(env, "Expected (enable: boolean) or (sessionId: string, enable: boolean)")
+            .ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    
-    bool enable = info[0].As<Napi::Boolean>().Value();
-    APR_EnableCropBox(enable);
+
+    CropTraceNative(
+        "EnableAPRCropBox:begin",
+        sessionId,
+        std::string("enable=") + (enable ? "true" : "false")
+    );
+
+    if (!sessionId.empty()) {
+        APR_EnableCropBoxForSession(sessionId.c_str(), enable);
+        // Back-compat: some rendering paths still consult the global crop-box state.
+        APR_EnableCropBox(enable);
+    } else {
+        APR_EnableCropBox(enable);
+    }
+
+    {
+        const bool enabled = !sessionId.empty()
+            ? APR_IsCropBoxEnabledForSession(sessionId.c_str())
+            : APR_IsCropBoxEnabled();
+        const int shape = !sessionId.empty()
+            ? APR_GetCropShapeForSession(sessionId.c_str())
+            : APR_GetCropShape();
+        CropTraceNative(
+            "EnableAPRCropBox:end",
+            sessionId,
+            std::string("enabled=") + (enabled ? "true" : "false") + " " + CropBoxToString(sessionId) +
+                " shape=" + std::to_string(shape) +
+                " cylinderDir=" + std::to_string(APR_GetCropCylinderDirection())
+        );
+    }
     
     return env.Undefined();
 }
@@ -2769,17 +2848,55 @@ Napi::Value EnableAPRCropBox(const Napi::CallbackInfo& info) {
 // 初始�?APR 裁切框（以体数据中心为初始位置）
 Napi::Value SetAPRCropBox(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    
-    if (info.Length() < 3 || !info[0].IsNumber() || !info[1].IsNumber() || !info[2].IsNumber()) {
-        Napi::TypeError::New(env, "Expected (width: number, height: number, depth: number)").ThrowAsJavaScriptException();
+
+    std::string sessionId;
+    int width = 0, height = 0, depth = 0;
+
+    if (info.Length() >= 4 && info[0].IsString() && info[1].IsNumber() && info[2].IsNumber() && info[3].IsNumber()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+        width = info[1].As<Napi::Number>().Int32Value();
+        height = info[2].As<Napi::Number>().Int32Value();
+        depth = info[3].As<Napi::Number>().Int32Value();
+    } else if (info.Length() >= 3 && info[0].IsNumber() && info[1].IsNumber() && info[2].IsNumber()) {
+        width = info[0].As<Napi::Number>().Int32Value();
+        height = info[1].As<Napi::Number>().Int32Value();
+        depth = info[2].As<Napi::Number>().Int32Value();
+    } else {
+        Napi::TypeError::New(env, "Expected (width: number, height: number, depth: number) or (sessionId: string, width: number, height: number, depth: number)")
+            .ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    
-    int width = info[0].As<Napi::Number>().Int32Value();
-    int height = info[1].As<Napi::Number>().Int32Value();
-    int depth = info[2].As<Napi::Number>().Int32Value();
-    
-    APR_SetCropBox(width, height, depth);
+
+    CropTraceNative(
+        "SetAPRCropBox:begin",
+        sessionId,
+        "width=" + std::to_string(width) + " height=" + std::to_string(height) + " depth=" + std::to_string(depth)
+    );
+
+    if (!sessionId.empty()) {
+        // Same semantics as APR_SetCropBox(): set centered crop box covering 50% of volume.
+        const float centerX = width / 2.0f;
+        const float centerY = height / 2.0f;
+        const float centerZ = depth / 2.0f;
+        const float halfSizeX = width * 0.25f;
+        const float halfSizeY = height * 0.25f;
+        const float halfSizeZ = depth * 0.25f;
+        APR_SetCropBoxRangeForSession(
+            sessionId.c_str(),
+            centerX - halfSizeX,
+            centerX + halfSizeX,
+            centerY - halfSizeY,
+            centerY + halfSizeY,
+            centerZ - halfSizeZ,
+            centerZ + halfSizeZ
+        );
+        // Back-compat global mirror (centered 50% box).
+        APR_SetCropBox(width, height, depth);
+    } else {
+        APR_SetCropBox(width, height, depth);
+    }
+
+    CropTraceNative("SetAPRCropBox:end", sessionId, CropBoxToString(sessionId));
     
     return env.Undefined();
 }
@@ -2787,30 +2904,65 @@ Napi::Value SetAPRCropBox(const Napi::CallbackInfo& info) {
 // 设置 APR 裁切框范围（volume space coords�?
 Napi::Value SetAPRCropBoxRange(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    if (info.Length() < 6 ||
-        !info[0].IsNumber() || !info[1].IsNumber() ||
-        !info[2].IsNumber() || !info[3].IsNumber() ||
-        !info[4].IsNumber() || !info[5].IsNumber()) {
-        Napi::TypeError::New(env, "Expected (xStart, xEnd, yStart, yEnd, zStart, zEnd)").ThrowAsJavaScriptException();
+
+    std::string sessionId;
+    int argOffset = 0;
+    if (info.Length() >= 7 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+        argOffset = 1;
+    }
+
+    if (info.Length() < static_cast<size_t>(argOffset + 6) ||
+        !info[argOffset + 0].IsNumber() || !info[argOffset + 1].IsNumber() ||
+        !info[argOffset + 2].IsNumber() || !info[argOffset + 3].IsNumber() ||
+        !info[argOffset + 4].IsNumber() || !info[argOffset + 5].IsNumber()) {
+        Napi::TypeError::New(env, "Expected (xStart, xEnd, yStart, yEnd, zStart, zEnd) or (sessionId, xStart, xEnd, yStart, yEnd, zStart, zEnd)")
+            .ThrowAsJavaScriptException();
         return env.Undefined();
     }
 
-    float xStart = info[0].As<Napi::Number>().FloatValue();
-    float xEnd = info[1].As<Napi::Number>().FloatValue();
-    float yStart = info[2].As<Napi::Number>().FloatValue();
-    float yEnd = info[3].As<Napi::Number>().FloatValue();
-    float zStart = info[4].As<Napi::Number>().FloatValue();
-    float zEnd = info[5].As<Napi::Number>().FloatValue();
+    const float xStart = info[argOffset + 0].As<Napi::Number>().FloatValue();
+    const float xEnd = info[argOffset + 1].As<Napi::Number>().FloatValue();
+    const float yStart = info[argOffset + 2].As<Napi::Number>().FloatValue();
+    const float yEnd = info[argOffset + 3].As<Napi::Number>().FloatValue();
+    const float zStart = info[argOffset + 4].As<Napi::Number>().FloatValue();
+    const float zEnd = info[argOffset + 5].As<Napi::Number>().FloatValue();
 
-    APR_SetCropBoxRange(xStart, xEnd, yStart, yEnd, zStart, zEnd);
+    {
+        std::ostringstream oss;
+        oss << "xStart=" << xStart << " xEnd=" << xEnd
+            << " yStart=" << yStart << " yEnd=" << yEnd
+            << " zStart=" << zStart << " zEnd=" << zEnd;
+        CropTraceNative("SetAPRCropBoxRange:begin", sessionId, oss.str());
+    }
+
+    if (!sessionId.empty()) {
+        APR_SetCropBoxRangeForSession(sessionId.c_str(), xStart, xEnd, yStart, yEnd, zStart, zEnd);
+        // Back-compat: mirror to global for render overlays.
+        APR_SetCropBoxRange(xStart, xEnd, yStart, yEnd, zStart, zEnd);
+    } else {
+        APR_SetCropBoxRange(xStart, xEnd, yStart, yEnd, zStart, zEnd);
+    }
+
+    CropTraceNative("SetAPRCropBoxRange:end", sessionId, CropBoxToString(sessionId));
     return env.Undefined();
 }
 
 // 获取 APR 裁切框范�?
 Napi::Value GetAPRCropBox(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
+
+    std::string sessionId;
+    if (info.Length() >= 1 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+    }
+
     float xStart = 0, xEnd = 0, yStart = 0, yEnd = 0, zStart = 0, zEnd = 0;
-    APR_GetCropBox(&xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    if (!sessionId.empty()) {
+        APR_GetCropBoxForSession(sessionId.c_str(), &xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    } else {
+        APR_GetCropBox(&xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    }
 
     Napi::Object out = Napi::Object::New(env);
     out.Set("xStart", Napi::Number::New(env, xStart));
@@ -2825,7 +2977,15 @@ Napi::Value GetAPRCropBox(const Napi::CallbackInfo& info) {
 // 检查裁切框是否启用
 Napi::Value IsAPRCropBoxEnabled(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    bool enabled = APR_IsCropBoxEnabled();
+
+    std::string sessionId;
+    if (info.Length() >= 1 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+    }
+
+    const bool enabled = !sessionId.empty()
+        ? APR_IsCropBoxEnabledForSession(sessionId.c_str())
+        : APR_IsCropBoxEnabled();
     return Napi::Boolean::New(env, enabled);
 }
 
@@ -2833,19 +2993,54 @@ Napi::Value IsAPRCropBoxEnabled(const Napi::CallbackInfo& info) {
 // Args: (shape: number)  0=立方�? 1=球体, 2=圆柱�?
 Napi::Value SetAPRCropShape(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    if (info.Length() < 1 || !info[0].IsNumber()) {
-        Napi::TypeError::New(env, "Expected (shape: number)").ThrowAsJavaScriptException();
+
+    std::string sessionId;
+    int shape = 0;
+    if (info.Length() >= 2 && info[0].IsString() && info[1].IsNumber()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+        shape = info[1].As<Napi::Number>().Int32Value();
+    } else if (info.Length() >= 1 && info[0].IsNumber()) {
+        shape = info[0].As<Napi::Number>().Int32Value();
+    } else {
+        Napi::TypeError::New(env, "Expected (shape: number) or (sessionId: string, shape: number)")
+            .ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    int shape = info[0].As<Napi::Number>().Int32Value();
-    APR_SetCropShape(shape);
+
+    CropTraceNative("SetAPRCropShape:begin", sessionId, "shape=" + std::to_string(shape));
+
+    if (!sessionId.empty()) {
+        APR_SetCropShapeForSession(sessionId.c_str(), shape);
+        // Keep legacy global in sync for any code paths still reading it.
+        APR_SetCropShape(shape);
+    } else {
+        APR_SetCropShape(shape);
+    }
+
+    const int actualShape = !sessionId.empty()
+        ? APR_GetCropShapeForSession(sessionId.c_str())
+        : APR_GetCropShape();
+
+    CropTraceNative(
+        "SetAPRCropShape:end",
+        sessionId,
+        "shape=" + std::to_string(actualShape) + " " + CropBoxToString(sessionId)
+    );
     return env.Undefined();
 }
 
 // 获取裁切形状
 Napi::Value GetAPRCropShape(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    int shape = APR_GetCropShape();
+
+    std::string sessionId;
+    if (info.Length() >= 1 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+    }
+
+    const int shape = !sessionId.empty()
+        ? APR_GetCropShapeForSession(sessionId.c_str())
+        : APR_GetCropShape();
     return Napi::Number::New(env, shape);
 }
 
@@ -2858,7 +3053,13 @@ Napi::Value SetAPRCropCylinderDirection(const Napi::CallbackInfo& info) {
         return env.Undefined();
     }
     int direction = info[0].As<Napi::Number>().Int32Value();
+    CropTraceNative("SetAPRCropCylinderDirection:begin", "", "direction=" + std::to_string(direction));
     APR_SetCropCylinderDirection(direction);
+    CropTraceNative(
+        "SetAPRCropCylinderDirection:end",
+        "",
+        "direction=" + std::to_string(APR_GetCropCylinderDirection()) + " shape=" + std::to_string(APR_GetCropShape())
+    );
     return env.Undefined();
 }
 
@@ -2873,17 +3074,72 @@ Napi::Value GetAPRCropCylinderDirection(const Napi::CallbackInfo& info) {
 // Args: (sizeX: number, sizeY: number, sizeZ: number, volumeWidth: number, volumeHeight: number, volumeDepth: number)
 Napi::Value SetAPRCropBoxSize(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    if (info.Length() < 6) {
-        Napi::TypeError::New(env, "Expected (sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth)").ThrowAsJavaScriptException();
+
+    std::string sessionId;
+    int argOffset = 0;
+    if (info.Length() >= 7 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+        argOffset = 1;
+    }
+
+    if (info.Length() < static_cast<size_t>(argOffset + 6)) {
+        Napi::TypeError::New(env, "Expected (sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth) or (sessionId, sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth)")
+            .ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    int sizeX = info[0].As<Napi::Number>().Int32Value();
-    int sizeY = info[1].As<Napi::Number>().Int32Value();
-    int sizeZ = info[2].As<Napi::Number>().Int32Value();
-    int volumeWidth = info[3].As<Napi::Number>().Int32Value();
-    int volumeHeight = info[4].As<Napi::Number>().Int32Value();
-    int volumeDepth = info[5].As<Napi::Number>().Int32Value();
-    APR_SetCropBoxSize(sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth);
+
+    const int sizeX = info[argOffset + 0].As<Napi::Number>().Int32Value();
+    const int sizeY = info[argOffset + 1].As<Napi::Number>().Int32Value();
+    const int sizeZ = info[argOffset + 2].As<Napi::Number>().Int32Value();
+    const int volumeWidth = info[argOffset + 3].As<Napi::Number>().Int32Value();
+    const int volumeHeight = info[argOffset + 4].As<Napi::Number>().Int32Value();
+    const int volumeDepth = info[argOffset + 5].As<Napi::Number>().Int32Value();
+
+    {
+        std::ostringstream oss;
+        oss << "sizeX=" << sizeX << " sizeY=" << sizeY << " sizeZ=" << sizeZ
+            << " volumeWidth=" << volumeWidth << " volumeHeight=" << volumeHeight << " volumeDepth=" << volumeDepth;
+        CropTraceNative("SetAPRCropBoxSize:begin", sessionId, oss.str());
+    }
+
+    if (!sessionId.empty()) {
+        // Emulate APR_SetCropBoxSize semantics, but for the per-session crop box.
+        float xStart = 0, xEnd = 0, yStart = 0, yEnd = 0, zStart = 0, zEnd = 0;
+        APR_GetCropBoxForSession(sessionId.c_str(), &xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+
+        float centerX = (xStart + xEnd) * 0.5f;
+        float centerY = (yStart + yEnd) * 0.5f;
+        float centerZ = (zStart + zEnd) * 0.5f;
+
+        const bool enabled = APR_IsCropBoxEnabledForSession(sessionId.c_str());
+        if (!enabled) {
+            centerX = volumeWidth * 0.5f;
+            centerY = volumeHeight * 0.5f;
+            centerZ = volumeDepth * 0.5f;
+        }
+
+        float nx0 = centerX - (sizeX * 0.5f);
+        float nx1 = centerX + (sizeX * 0.5f);
+        float ny0 = centerY - (sizeY * 0.5f);
+        float ny1 = centerY + (sizeY * 0.5f);
+        float nz0 = centerZ - (sizeZ * 0.5f);
+        float nz1 = centerZ + (sizeZ * 0.5f);
+
+        if (nx0 < 0) nx0 = 0;
+        if (ny0 < 0) ny0 = 0;
+        if (nz0 < 0) nz0 = 0;
+        if (nx1 > volumeWidth - 1) nx1 = static_cast<float>(volumeWidth - 1);
+        if (ny1 > volumeHeight - 1) ny1 = static_cast<float>(volumeHeight - 1);
+        if (nz1 > volumeDepth - 1) nz1 = static_cast<float>(volumeDepth - 1);
+
+        APR_SetCropBoxRangeForSession(sessionId.c_str(), nx0, nx1, ny0, ny1, nz0, nz1);
+        // Back-compat: mirror to global for render overlays.
+        APR_SetCropBoxSize(sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth);
+    } else {
+        APR_SetCropBoxSize(sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth);
+    }
+
+    CropTraceNative("SetAPRCropBoxSize:end", sessionId, CropBoxToString(sessionId));
     return env.Undefined();
 }
 
@@ -2891,15 +3147,27 @@ Napi::Value SetAPRCropBoxSize(const Napi::CallbackInfo& info) {
 // Returns: { shape, cylinderDirection, cropBox: {xStart, xEnd, ...}, enabled }
 Napi::Value GetAPRCropSettings(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
+
+    std::string sessionId;
+    if (info.Length() >= 1 && info[0].IsString()) {
+        sessionId = info[0].As<Napi::String>().Utf8Value();
+    }
     
     Napi::Object result = Napi::Object::New(env);
-    result.Set("shape", Napi::Number::New(env, APR_GetCropShape()));
+    const int shape = !sessionId.empty() ? APR_GetCropShapeForSession(sessionId.c_str()) : APR_GetCropShape();
+    const bool enabled = !sessionId.empty() ? APR_IsCropBoxEnabledForSession(sessionId.c_str()) : APR_IsCropBoxEnabled();
+
+    result.Set("shape", Napi::Number::New(env, shape));
     result.Set("cylinderDirection", Napi::Number::New(env, APR_GetCropCylinderDirection()));
-    result.Set("enabled", Napi::Boolean::New(env, APR_IsCropBoxEnabled()));
+    result.Set("enabled", Napi::Boolean::New(env, enabled));
     
     // 裁切框范�?
     float xStart = 0, xEnd = 0, yStart = 0, yEnd = 0, zStart = 0, zEnd = 0;
-    APR_GetCropBox(&xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    if (!sessionId.empty()) {
+        APR_GetCropBoxForSession(sessionId.c_str(), &xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    } else {
+        APR_GetCropBox(&xStart, &xEnd, &yStart, &yEnd, &zStart, &zEnd);
+    }
     
     Napi::Object cropBox = Napi::Object::New(env);
     cropBox.Set("xStart", Napi::Number::New(env, xStart));
@@ -2925,12 +3193,39 @@ Napi::Value CropVolume(const Napi::CallbackInfo& info) {
     }
     
     std::string sessionId = info[0].As<Napi::String>().Utf8Value();
+
+    const bool enabled = APR_IsCropBoxEnabledForSession(sessionId.c_str());
+    const int shape = APR_GetCropShapeForSession(sessionId.c_str());
+
+    CropTraceNative(
+        "CropVolume:begin",
+        sessionId,
+        std::string("enabled=") + (enabled ? "true" : "false") +
+            " shape=" + std::to_string(shape) +
+            " cylinderDir=" + std::to_string(APR_GetCropCylinderDirection()) +
+            " " + CropBoxToString(sessionId)
+    );
     
     Napi::Object result = Napi::Object::New(env);
     
     // 获取 axial APR handle
     auto it = g_AprHandles.find(sessionId + "_axial");
     if (it == g_AprHandles.end() || !it->second) {
+        // Include which handles exist for debugging session key mismatches.
+        {
+            size_t matchCount = 0;
+            std::ostringstream oss;
+            oss << "axial handle missing. existing keys (prefix match):";
+            for (const auto& pair : g_AprHandles) {
+                if (pair.first.rfind(sessionId + "_", 0) != 0) continue;
+                oss << " " << pair.first;
+                matchCount++;
+            }
+            if (matchCount == 0) {
+                oss << " <none>";
+            }
+            CropTraceNative("CropVolume:error", sessionId, oss.str());
+        }
         result.Set("success", Napi::Boolean::New(env, false));
         result.Set("error", Napi::String::New(env, "Session not found or axial APR not available"));
         return result;
@@ -2939,6 +3234,12 @@ Napi::Value CropVolume(const Napi::CallbackInfo& info) {
     // 执行裁切
     APRHandle croppedHandle = APR_CropVolume(it->second);
     if (!croppedHandle) {
+        const char* err = Visualization_GetLastError();
+        CropTraceNative(
+            "CropVolume:error",
+            sessionId,
+            std::string("APR_CropVolume returned null. lastError=") + (err ? err : "<null>")
+        );
         result.Set("success", Napi::Boolean::New(env, false));
         result.Set("error", Napi::String::New(env, "Crop operation failed"));
         return result;
@@ -2950,6 +3251,16 @@ Napi::Value CropVolume(const Napi::CallbackInfo& info) {
     
     float spacingX = 1.0f, spacingY = 1.0f, spacingZ = 1.0f;
     APR_GetCroppedVolumeSpacing(&spacingX, &spacingY, &spacingZ);
+
+    g_LastCropMetaBySession[sessionId] = CropResultMeta{ newWidth, newHeight, newDepth, spacingX, spacingY, spacingZ };
+
+    {
+        std::ostringstream oss;
+        oss << "croppedHandle=" << (void*)croppedHandle
+            << " dims=" << newWidth << "x" << newHeight << "x" << newDepth
+            << " spacing=" << spacingX << "," << spacingY << "," << spacingZ;
+        CropTraceNative("CropVolume:end", sessionId, oss.str());
+    }
     
     result.Set("success", Napi::Boolean::New(env, true));
     result.Set("width", Napi::Number::New(env, newWidth));
@@ -2974,18 +3285,129 @@ Napi::Value ApplyCroppedVolumeToSession(const Napi::CallbackInfo& info) {
     
     std::string sessionId = info[0].As<Napi::String>().Utf8Value();
     Napi::Object result = Napi::Object::New(env);
+
+    CropTraceNative("ApplyCroppedVolumeToSession:begin", sessionId, "");
+
+    // We want crop-apply to behave like creating a new volume instance for this dataset,
+    // and keep it effective across tab switches (new sessions) by updating the shared volume cache.
+    std::string volumeKey;
+    {
+        auto itKey = g_SessionToVolumeKey.find(sessionId);
+        if (itKey != g_SessionToVolumeKey.end()) {
+            volumeKey = itKey->second;
+        }
+    }
+    VolumeHandle oldCachedVolume = nullptr;
+    if (!volumeKey.empty()) {
+        auto itCache = g_VolumeCache.find(volumeKey);
+        if (itCache != g_VolumeCache.end()) {
+            oldCachedVolume = itCache->second.volume;
+        }
+    }
     
     // 调用DLL API执行应用操作 - 使用 session-aware 版本
     int success = APR_ApplyCroppedVolumeForSession(sessionId.c_str());
     if (!success) {
+        const char* err = Visualization_GetLastError();
+        CropTraceNative(
+            "ApplyCroppedVolumeToSession:error",
+            sessionId,
+            std::string("APR_ApplyCroppedVolumeForSession failed. lastError=") + (err ? err : "<null>")
+        );
         result.Set("success", Napi::Boolean::New(env, false));
         result.Set("error", Napi::String::New(env, "No cropped volume available for this session or apply failed"));
         return result;
     }
     
-    // 获取应用后的尺寸
+    // NOTE: The DLL intentionally clears croppedVolumeData during apply, so APR_GetCroppedVolumeDimensions()
+    // will return 0 after apply. Use the last crop meta captured at CropVolume().
     int width = 0, height = 0, depth = 0;
-    APR_GetCroppedVolumeDimensions(&width, &height, &depth);
+    auto metaIt = g_LastCropMetaBySession.find(sessionId);
+    if (metaIt != g_LastCropMetaBySession.end()) {
+        width = metaIt->second.width;
+        height = metaIt->second.height;
+        depth = metaIt->second.depth;
+    }
+
+    // Fetch the newly-applied volume handle from one of the session APRs.
+    VolumeHandle newVolume = nullptr;
+    {
+        auto itAx = g_AprHandles.find(sessionId + "_axial");
+        if (itAx != g_AprHandles.end() && itAx->second) {
+            (void)APR_GetVolume(itAx->second, &newVolume);
+        }
+    }
+
+    // Update the shared volume cache so any future CreateAPRViews(...) for the same folderPath
+    // reuses the cropped volume (fixes: switch tab -> still original volume).
+    // Also migrate any currently-alive sessions that reference the same volumeKey.
+    if (!volumeKey.empty() && newVolume) {
+        auto itCache = g_VolumeCache.find(volumeKey);
+        if (itCache != g_VolumeCache.end()) {
+            itCache->second.volume = newVolume;
+            itCache->second.lastUsedMs = NowMs();
+            if (width > 0 && height > 0 && depth > 0) {
+                itCache->second.width = width;
+                itCache->second.height = height;
+                itCache->second.depth = depth;
+            }
+        } else {
+            // If the key is missing (unexpected), create a cache entry so the new volume persists.
+            VolumeCacheEntry entry;
+            entry.volume = newVolume;
+            entry.refCount = 1;
+            entry.lastUsedMs = NowMs();
+            entry.width = width;
+            entry.height = height;
+            entry.depth = depth;
+            g_VolumeCache[volumeKey] = entry;
+        }
+
+        // Migrate all sessions that use the same volumeKey to the new volume.
+        for (const auto& pair : g_SessionToVolumeKey) {
+            const std::string& otherSessionId = pair.first;
+            const std::string& otherKey = pair.second;
+            if (otherKey != volumeKey) continue;
+
+            g_VolumeHandles[otherSessionId] = newVolume;
+
+            for (const auto& view : std::vector<std::string>{ "_axial", "_coronal", "_sagittal", "_3d" }) {
+                auto itApr = g_AprHandles.find(otherSessionId + view);
+                if (itApr != g_AprHandles.end() && itApr->second) {
+                    APR_SetVolume(itApr->second, newVolume);
+                }
+            }
+
+            // MPR views (if any) must be migrated too before we destroy the old volume.
+            for (const auto& view : std::vector<std::string>{ "_axial", "_coronal", "_sagittal" }) {
+                auto itMpr = g_MprHandles.find(otherSessionId + view);
+                if (itMpr != g_MprHandles.end() && itMpr->second) {
+                    MPR_SetVolume(itMpr->second, newVolume);
+                }
+            }
+
+            // Keep mask/overlay volume registration consistent.
+            (void)MPR_RegisterSessionVolume(otherSessionId.c_str(), newVolume);
+        }
+
+        // Now that every referencing session points at the cropped volume, the old cached volume
+        // can be destroyed (this is the "release old instance" behavior).
+        if (oldCachedVolume && oldCachedVolume != newVolume) {
+            Dicom_Volume_Destroy(oldCachedVolume);
+            oldCachedVolume = nullptr;
+        }
+    }
+
+    {
+        std::ostringstream oss;
+        oss << "dims=" << width << "x" << height << "x" << depth
+            << " volumeKey=" << (volumeKey.empty() ? "<none>" : volumeKey)
+            << " newVolume=" << (void*)newVolume
+            << " enabled=" << (APR_IsCropBoxEnabledForSession(sessionId.c_str()) ? "true" : "false")
+            << " shape=" << APR_GetCropShapeForSession(sessionId.c_str()) << " cylinderDir=" << APR_GetCropCylinderDirection()
+            << " " << CropBoxToString(sessionId);
+        CropTraceNative("ApplyCroppedVolumeToSession:end", sessionId, oss.str());
+    }
     
     result.Set("success", Napi::Boolean::New(env, true));
     result.Set("width", Napi::Number::New(env, width));
@@ -3972,6 +4394,114 @@ Napi::Value Set3DPrimitiveVisible(const Napi::CallbackInfo& info) {
     if (it == g_WindowHandles.end() || !it->second) return Napi::Boolean::New(env, false);
     return Napi::Boolean::New(env, Window3D_SetPrimitiveVisible(it->second, primId, visible) == NATIVE_OK);
 }
+
+// ==================== Window Screenshot by HWND ====================
+
+static bool TryParseHwndArg(const Napi::Value& v, uint64_t* outHwnd) {
+    if (!outHwnd) return false;
+
+    // Prefer lossless types first.
+    if (v.IsBigInt()) {
+        bool lossless = false;
+        uint64_t val = v.As<Napi::BigInt>().Uint64Value(&lossless);
+        if (!lossless) return false;
+        *outHwnd = val;
+        return true;
+    }
+
+    if (v.IsString()) {
+        std::string s = v.As<Napi::String>().Utf8Value();
+        if (s.empty()) return false;
+        try {
+            // We pass HWND around as a decimal string (uint64) in JS/UI.
+            *outHwnd = static_cast<uint64_t>(std::stoull(s));
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    if (v.IsNumber()) {
+        // WARNING: JS Number is not safe for full 64-bit pointers.
+        // Kept for backward compatibility / small HWND values.
+        double d = v.As<Napi::Number>().DoubleValue();
+        if (!std::isfinite(d) || d < 0) return false;
+        *outHwnd = static_cast<uint64_t>(d);
+        return true;
+    }
+
+    return false;
+}
+
+static Napi::Value CaptureWindowByHWND(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 1) {
+        Napi::TypeError::New(env, "Expected HWND (string|bigint|number)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    uint64_t hwndValue = 0;
+    if (!TryParseHwndArg(info[0], &hwndValue)) {
+        Napi::TypeError::New(env, "Invalid HWND (expected decimal string/bigint/number)").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+
+    void* hwnd = reinterpret_cast<void*>(static_cast<uintptr_t>(hwndValue));
+    
+    int width = 0, height = 0;
+    void* pixelData = Window_CaptureByHWND(hwnd, &width, &height);
+    
+    if (!pixelData) {
+        Napi::Error::New(env, "Failed to capture window").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    // Create Node.js Buffer from pixel data
+    Napi::Buffer<uint8_t> buffer = Napi::Buffer<uint8_t>::Copy(env, 
+        static_cast<uint8_t*>(pixelData), 
+        width * height * 4);
+    
+    // Free the pixel data
+    free(pixelData);
+    
+    // Return object with width, height, and buffer
+    Napi::Object result = Napi::Object::New(env);
+    result.Set("width", Napi::Number::New(env, width));
+    result.Set("height", Napi::Number::New(env, height));
+    result.Set("data", buffer);
+    
+    return result;
+}
+
+static Napi::Value SaveWindowScreenshotByHWND(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 2 || !info[1].IsString()) {
+        Napi::TypeError::New(env, "Expected (HWND, filepath)").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+
+    uint64_t hwndValue = 0;
+    if (!TryParseHwndArg(info[0], &hwndValue)) {
+        Napi::TypeError::New(env, "Invalid HWND (expected decimal string/bigint/number)").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+
+    void* hwnd = reinterpret_cast<void*>(static_cast<uintptr_t>(hwndValue));
+    std::string filepath = info[1].As<Napi::String>().Utf8Value();
+    
+    NativeResult result = Window_SaveScreenshotByHWND(hwnd, filepath.c_str());
+    
+    if (result != NATIVE_OK) {
+        std::string errorMsg = "Failed to save screenshot: ";
+        errorMsg += Visualization_GetLastError();
+        Napi::Error::New(env, errorMsg).ThrowAsJavaScriptException();
+    }
+    
+    return env.Undefined();
+}
+
 // ==================== 模块初始�?====================
 
 void InitVisualizationModule(Napi::Env env, Napi::Object& exports) {
@@ -4094,4 +4624,8 @@ void InitVisualizationModule(Napi::Env env, Napi::Object& exports) {
     exports.Set("set3DSceneTransform", Napi::Function::New(env, Set3DSceneTransform));
     exports.Set("set3DPrimitiveColor", Napi::Function::New(env, Set3DPrimitiveColor));
     exports.Set("set3DPrimitiveVisible", Napi::Function::New(env, Set3DPrimitiveVisible));
+    
+    // Window screenshot by HWND
+    exports.Set("captureWindowByHWND", Napi::Function::New(env, CaptureWindowByHWND));
+    exports.Set("saveWindowScreenshotByHWND", Napi::Function::New(env, SaveWindowScreenshotByHWND));
 }

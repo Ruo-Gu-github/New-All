@@ -122,7 +122,7 @@ async function refreshAprCropRange() {
 
   aprCropRangeLoading.value = true;
   try {
-    const box = await window.visualizationApi.getAPRCropBox();
+    const box = await window.visualizationApi.getAPRCropBox(sessionId.value);
     if (box && typeof box === "object") {
       aprCropRange.value = {
         xStart: Number((box as any).xStart ?? 0),
@@ -153,6 +153,7 @@ async function applyAprCropRange() {
   const r = aprCropRange.value;
   try {
     await window.visualizationApi.setAPRCropBoxRange(
+      sessionId.value,
       Number(r.xStart),
       Number(r.xEnd),
       Number(r.yStart),

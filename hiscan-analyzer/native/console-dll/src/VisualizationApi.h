@@ -46,6 +46,7 @@ extern "C" {
     VIZ_API void APR_Destroy(APRHandle handle);
     /// ����������
     VIZ_API NativeResult APR_SetVolume(APRHandle handle, VolumeHandle volume);
+    VIZ_API NativeResult APR_GetVolume(APRHandle handle, VolumeHandle* outVolume);
     /// ������Ƭ����0=Axial, 1=Coronal, 2=Sagittal��
     VIZ_API void APR_SetSliceDirection(APRHandle handle, int direction);
     /// ��ȡ��Ƭ����
@@ -54,15 +55,15 @@ extern "C" {
     VIZ_API void APR_SetCenter(APRHandle handle, float x, float y, float z);
     /// ��ȡ���ĵ�
     VIZ_API void APR_GetCenter(APRHandle handle, float* x, float* y, float* z);
-    /// ���Ӷ�� APR��ʹ���ǹ���ͬһ�����ĵ㣨���ڶ���ͼͬ����
+    /// ���Ӷ��?APR��ʹ���ǹ���ͬһ�����ĵ㣨���ڶ���ͼͬ����
     VIZ_API void APR_LinkCenter(APRHandle* handles, int count);
-    /// ������ת�Ƕȣ�ŷ���ǣ���X��Y��Z�����ת�Ƕȣ���λ���ȣ�
+    /// ������ת�Ƕȣ�ŷ���ǣ���X��Y��Z�����ת�Ƕȣ���λ���ȣ�?
     VIZ_API void APR_SetRotation(APRHandle handle, float angleX, float angleY, float angleZ);
     /// ��ȡ��ת�Ƕ�
     VIZ_API void APR_GetRotation(APRHandle handle, float* angleX, float* angleY, float* angleZ);
-    /// ��ȡָ���������Ƭ��0=����/�����, 1=ʸ״��, 2=��״�棩
+    /// ��ȡָ���������Ƭ��?=����/�����? 1=ʸ״��, 2=��״�棩
     VIZ_API void* APR_GetSlice(APRHandle handle, int direction, int* width, int* height);
-    /// 只更新displayBuffer不渲染（用于3D正交视图）
+    /// 只更新displayBuffer不渲染（用于3D正交视图�?
     VIZ_API NativeResult APR_UpdateSlice(APRHandle handle);
     /// ��ʾ/���ض�λ��
     VIZ_API void APR_SetShowCrossHair(APRHandle handle, bool show);
@@ -94,75 +95,75 @@ extern "C" {
     /// 渲染3D正交视图（显示三个正交平面）
     VIZ_API NativeResult APR_RenderOrthogonal3D(APRHandle axial, APRHandle coronal, APRHandle sagittal);
 
-    // ==================== APR 裁切框 ====================
-    /// 设置裁切框（按体数据的初始大小占50%居中）- 全局版本（向后兼容）
+    // ==================== APR 裁切�?====================
+    /// 设置裁切框（按体数据的初始大小占50%居中�? 全局版本（向后兼容）
     VIZ_API void APR_SetCropBox(int volumeWidth, int volumeHeight, int volumeDepth);
-    /// 设置裁切框范围（体素坐标）- 全局版本（向后兼容）
+    /// 设置裁切框范围（体素坐标�? 全局版本（向后兼容）
     VIZ_API void APR_SetCropBoxRange(float xStart, float xEnd, float yStart, float yEnd, float zStart, float zEnd);
-    /// 获取裁切框范围（虚拟坐标）- 全局版本（向后兼容）
+    /// 获取裁切框范围（虚拟坐标�? 全局版本（向后兼容）
     VIZ_API void APR_GetCropBox(float* xStart, float* xEnd, float* yStart, float* yEnd, float* zStart, float* zEnd);
-    /// 启用/禁用裁切框 - 全局版本（向后兼容）
+    /// 启用/禁用裁切�?- 全局版本（向后兼容）
     VIZ_API void APR_EnableCropBox(bool enable);
-    /// 获取裁切框启用状态 - 全局版本（向后兼容）
+    /// 获取裁切框启用状�?- 全局版本（向后兼容）
     VIZ_API bool APR_IsCropBoxEnabled();
     
-    // ==================== APR 裁切框（Session版本）====================
-    /// 设置裁切框范围（session级别）
+    // ==================== APR 裁切框（Session版本�?===================
+    /// 设置裁切框范围（session级别�?
     VIZ_API void APR_SetCropBoxRangeForSession(const char* sessionId, float xStart, float xEnd, float yStart, float yEnd, float zStart, float zEnd);
-    /// 获取裁切框范围（session级别）
+    /// 获取裁切框范围（session级别�?
     VIZ_API void APR_GetCropBoxForSession(const char* sessionId, float* xStart, float* xEnd, float* yStart, float* yEnd, float* zStart, float* zEnd);
-    /// 启用/禁用裁切框（session级别）
+    /// 启用/禁用裁切框（session级别�?
     VIZ_API void APR_EnableCropBoxForSession(const char* sessionId, bool enable);
-    /// 获取裁切框启用状态（session级别）
+    /// 获取裁切框启用状态（session级别�?
     VIZ_API bool APR_IsCropBoxEnabledForSession(const char* sessionId);
-    /// 设置裁切形状（session级别）
+    /// 设置裁切形状（session级别�?
     VIZ_API void APR_SetCropShapeForSession(const char* sessionId, int shape);
-    /// 获取裁切形状（session级别）
+    /// 获取裁切形状（session级别�?
     VIZ_API int APR_GetCropShapeForSession(const char* sessionId);
     
-    /// 设置裁切形状 (0=立方体, 1=球体, 2=圆柱体)
+    /// 设置裁切形状 (0=立方�? 1=球体, 2=圆柱�?
     VIZ_API void APR_SetCropShape(int shape);
-    /// 获取裁切形状 (0=立方体, 1=球体, 2=圆柱体)
+    /// 获取裁切形状 (0=立方�? 1=球体, 2=圆柱�?
     VIZ_API int APR_GetCropShape();
-    /// 设置圆柱体方向 (0=轴向Z, 1=冠状Y, 2=矢状X)
+    /// 设置圆柱体方�?(0=轴向Z, 1=冠状Y, 2=矢状X)
     VIZ_API void APR_SetCropCylinderDirection(int direction);
-    /// 获取圆柱体方向 (0=轴向Z, 1=冠状Y, 2=矢状X)
+    /// 获取圆柱体方�?(0=轴向Z, 1=冠状Y, 2=矢状X)
     VIZ_API int APR_GetCropCylinderDirection();
-    /// 按尺寸设置裁切框（以当前中心为基准，设置指定尺寸的裁切框，单位为像素）
+    /// 按尺寸设置裁切框（以当前中心为基准，设置指定尺寸的裁切框，单位为像素�?
     VIZ_API void APR_SetCropBoxSize(int sizeX, int sizeY, int sizeZ, int volumeWidth, int volumeHeight, int volumeDepth);
-    /// 裁切体数据，返回新的APR句柄（用于显示裁切后的体数据）
+    /// 裁切体数据，返回新的APR句柄（用于显示裁切后的体数据�?
     VIZ_API APRHandle APR_CropVolume(APRHandle sourceHandle);
-    /// 获取最后一次裁切的结果（不创建新的，如果没有裁切的结果返回nullptr）
+    /// 获取最后一次裁切的结果（不创建新的，如果没有裁切的结果返回nullptr�?
     VIZ_API APRHandle APR_GetLastCroppedVolume();
-    /// 获取裁切后体数据的尺寸（如果没有裁切结果，返回0,0,0）
+    /// 获取裁切后体数据的尺寸（如果没有裁切结果，返�?,0,0�?
     VIZ_API void APR_GetCroppedVolumeDimensions(int* width, int* height, int* depth);
     /// 获取裁切后体数据的spacing
     VIZ_API void APR_GetCroppedVolumeSpacing(float* spacingX, float* spacingY, float* spacingZ);
     /// 应用裁切结果到所有关联的APR（替换volume，重置中心点和旋转）
-    /// 返回1表示成功，0表示失败（无裁切结果）
+    /// 返回1表示成功�?表示失败（无裁切结果�?
     VIZ_API int APR_ApplyCroppedVolume();
-    /// 应用裁切结果到指定session的所有APR（session级别管理）
+    /// 应用裁切结果到指定session的所有APR（session级别管理�?
     /// sessionId: 要应用裁切的session标识
-    /// 返回1表示成功，0表示失败
+    /// 返回1表示成功�?表示失败
     VIZ_API int APR_ApplyCroppedVolumeForSession(const char* sessionId);
-    /// 执行裁切并创建新的 volume 实例
+    /// 执行裁切并创建新�?volume 实例
     /// 裁切后相当于打开了一组新的图像，原始 volume 可以释放
-    /// 如果是球或圆柱形状，外部区域填充0形成立方体
-    /// 返回1表示成功，0表示失败
+    /// 如果是球或圆柱形状，外部区域填充0形成立方�?
+    /// 返回1表示成功�?表示失败
     VIZ_API int APR_ApplyCroppedVolumeTo3D(APRHandle sourceHandle);
-    /// 获取当前是否有活跃的裁切后 volume
+    /// 获取当前是否有活跃的裁切�?volume
     VIZ_API bool APR_HasActiveVolume();
-    /// 获取当前活跃 volume 的尺寸
+    /// 获取当前活跃 volume 的尺�?
     VIZ_API void APR_GetActiveVolumeSize(int* width, int* height, int* depth);
-    /// 清除当前活跃的 volume（准备加载新的 DICOM）
+    /// 清除当前活跃�?volume（准备加载新�?DICOM�?
     VIZ_API void APR_ClearActiveVolume();
-    /// 删除APR句柄并释放资源
+    /// 删除APR句柄并释放资�?
     VIZ_API void APR_Destroy(APRHandle handle);
 
-    // ==================== MPR (多平面重建) ====================
+    // ==================== MPR (多平面重�? ====================
     /// MPR ��Ƭ����
     typedef enum {
-        MPR_AXIAL = 0,      // ����/����� (XY plane, Z direction)
+        MPR_AXIAL = 0,      // ����/�����?(XY plane, Z direction)
         MPR_CORONAL = 1,    // ��״�� (XZ plane, Y direction)
         MPR_SAGITTAL = 2    // ʸ״�� (YZ plane, X direction)
     } MPRSliceDirection;
@@ -181,9 +182,9 @@ extern "C" {
     VIZ_API void MPR_SetCenter(MPRHandle handle, float x, float y, float z);
     /// ��ȡ���ĵ�
     VIZ_API void MPR_GetCenter(MPRHandle handle, float* x, float* y, float* z);
-    /// ���Ӷ�� MPR��ʹ���ǹ���ͬһ�����ĵ㣨���ڶ���ͼͬ����
+    /// ���Ӷ��?MPR��ʹ���ǹ���ͬһ�����ĵ㣨���ڶ���ͼͬ����
     VIZ_API void MPR_LinkCenter(MPRHandle* handles, int count);
-    /// ��ȡָ���������Ƭ
+    /// ��ȡָ����������?
     VIZ_API void* MPR_GetSlice(MPRHandle handle, int direction, int* width, int* height);
     /// ��ʾ/���ض�λ��
     VIZ_API void MPR_SetShowCrossHair(MPRHandle handle, bool show);
@@ -192,7 +193,7 @@ extern "C" {
     /// ��ȡ��������
     VIZ_API float MPR_GetZoom(MPRHandle handle);
 
-    /// 设置关联的Session ID（用于从Session获取mask数据）
+    /// 设置关联的Session ID（用于从Session获取mask数据�?
     VIZ_API void MPR_SetSessionId(MPRHandle handle, const char* sessionId);
 
     // Window/level (HU)
@@ -202,11 +203,11 @@ extern "C" {
     VIZ_API NativeResult MPR_Render(MPRHandle handle);
 
     // ==================== MPR Mask ��ʾ ====================
-    /// ���� Mask �� MPR��֧�ֶ�� Mask ������ʾ��
+    /// ���� Mask �� MPR��֧�ֶ��?Mask ������ʾ��
     VIZ_API NativeResult MPR_AddMask(MPRHandle handle, MaskManagerHandle maskManager, int maskIndex);
     /// �Ƴ�ָ���� Mask
     VIZ_API void MPR_RemoveMask(MPRHandle handle, int maskIndex);
-    /// ������� Mask
+    /// �������?Mask
     VIZ_API void MPR_ClearMasks(MPRHandle handle);
     /// ���� Mask ����ʾ͸���ȣ�0.0-1.0��
     VIZ_API void MPR_SetMaskOpacity(MPRHandle handle, int maskIndex, float opacity);
@@ -229,11 +230,11 @@ extern "C" {
         float maxThreshold;
     } MaskInfo;
 
-    /// ��ȡ�����ݵ�ֱ��ͼ��������ֵ�ָ���棩
+    /// ��ȡ�����ݵ�ֱ��ͼ��������ֵ�ָ����?
     /// @param sessionId Session��ʶ��
-    /// @param outData ���256��bin��Ƶ�����飨�����������int[256]��
+    /// @param outData ���?56��bin��Ƶ�����飨�����������int[256]��
     /// @param outMinValue ���CTֵ��Сֵ
-    /// @param outMaxValue ���CTֵ���ֵ
+    /// @param outMaxValue ���CTֵ����?
     /// @return �ɹ�����NATIVE_OK
     VIZ_API NativeResult MPR_GetVolumeHistogram(
         const char* sessionId,
@@ -242,9 +243,9 @@ extern "C" {
         int* outMaxValue
     );
 
-    /// ע��Session��Volume���ڴ���APR��ͼ����ã�
+    /// ע��Session��Volume���ڴ���APR��ͼ����ã�?
     /// @param sessionId Session��ʶ��
-    /// @param volume �����ݾ��
+    /// @param volume �����ݾ��?
     /// @return �ɹ�����NATIVE_OK
     VIZ_API NativeResult MPR_RegisterSessionVolume(
         const char* sessionId,
@@ -254,7 +255,7 @@ extern "C" {
     /// ����Ԥ��mask��ʵʱ��ʾ��ֵ�ָ�Ч����
     /// @param sessionId Session��ʶ��
     /// @param minThreshold ��С��ֵ
-    /// @param maxThreshold �����ֵ
+    /// @param maxThreshold ������?
     /// @param hexColor ��ɫ��#rrggbb��ʽ��
     /// @return �ɹ�����NATIVE_OK
     VIZ_API NativeResult MPR_UpdatePreviewMask(
@@ -274,7 +275,7 @@ extern "C" {
     /// ������ֵ����permanent mask
     /// @param sessionId Session��ʶ��
     /// @param minThreshold ��С��ֵ
-    /// @param maxThreshold �����ֵ
+    /// @param maxThreshold ������?
     /// @param hexColor ��ɫ��#rrggbb��ʽ��
     /// @param maskName Mask����
     /// @param outMaskId ��������maskId
@@ -301,16 +302,16 @@ extern "C" {
         int* outMaskId
     );
 
-    /// 统计指定 mask 内的 HU 分布与基本统计
+    /// 统计指定 mask 内的 HU 分布与基本统�?
     /// @param sessionId Session标识
     /// @param maskId 要统计的 maskId
-    /// @param outHistogram 256-bin 直方图（可传 nullptr）
-    /// @param outMinValue HU最小值
-    /// @param outMaxValue HU最大值
+    /// @param outHistogram 256-bin 直方图（可传 nullptr�?
+    /// @param outMinValue HU最小�?
+    /// @param outMaxValue HU最大�?
     /// @param outMean 平均HU
-    /// @param outStdDev HU标准差
-    /// @param outCount mask内体素数量
-    /// @param outVolumeMm3 体积（mm^3），按 spacing 计算
+    /// @param outStdDev HU标准�?
+    /// @param outCount mask内体素数�?
+    /// @param outVolumeMm3 体积（mm^3），�?spacing 计算
     VIZ_API NativeResult MPR_GetMaskStatistics(
         const char* sessionId,
         int maskId,
@@ -357,7 +358,7 @@ extern "C" {
     /// ��������masks���ļ�
     /// @param sessionId Session��ʶ��
     /// @param folderPath ͼ���ļ���·��
-    /// @param maskName ������ļ�����������չ����
+    /// @param maskName ������ļ�����������չ����?
     /// @param outFilePath �������������ļ�·���������������char[1024]��
     /// @param outFilePathSize outFilePath�Ļ�������С
     /// @return �ɹ�����NATIVE_OK
@@ -369,7 +370,7 @@ extern "C" {
         int outFilePathSize
     );
 
-    /// ����masks���ļ�����Windows�ļ�ѡ��Ի���
+    /// ����masks���ļ�����Windows�ļ�ѡ��Ի���?
     /// @param sessionId Session��ʶ��
     /// @param folderPath ��ʼ�ļ���·�������飺{imageFolderPath}/masks/��
     /// @param outMaskCount ������ص�mask����
@@ -388,11 +389,11 @@ extern "C" {
     typedef enum {
         MORPH_DILATE = 0,   // 膨胀
         MORPH_ERODE = 1,    // 腐蚀
-        MORPH_OPEN = 2,     // 开运算（先腐蚀后膨胀）
-        MORPH_CLOSE = 3     // 闭运算（先膨胀后腐蚀）
+        MORPH_OPEN = 2,     // 开运算（先腐蚀后膨胀�?
+        MORPH_CLOSE = 3     // 闭运算（先膨胀后腐蚀�?
     } MorphologyOperation;
 
-    /// 对指定mask执行形态学操作（2D逐层处理）
+    /// 对指定mask执行形态学操作�?D逐层处理�?
     /// @param sessionId Session标识
     /// @param maskId 要处理的maskId
     /// @param operation 形态学操作类型
@@ -450,7 +451,7 @@ extern "C" {
         int* outMaskId
     );
 
-    /// 反转指定mask（0变255，255变0）
+    /// 反转指定mask�?�?55�?55�?�?
     /// @param sessionId Session标识
     /// @param maskId 要反转的maskId
     /// @return 成功返回NATIVE_OK
@@ -519,14 +520,14 @@ extern "C" {
         double daEigen3;
     } BoneMetrics;
 
-    /// 计算骨分析指标
+    /// 计算骨分析指�?
     VIZ_API NativeResult MPR_CalculateBoneMetrics(
         const char* sessionId,
         int maskId,
         BoneMetrics* outMetrics
     );
 
-    /// 计算骨分析指标（ROI-aware 版本，TV 由 roiMaskId 定义）
+    /// 计算骨分析指标（ROI-aware 版本，TV �?roiMaskId 定义�?
     /// @param roiMaskId ROI mask id; <=0 means use full volume / legacy behavior
     VIZ_API NativeResult MPR_CalculateBoneMetricsEx(
         const char* sessionId,
@@ -535,10 +536,10 @@ extern "C" {
         BoneMetrics* outMetrics
     );
 
-    // ==================== 3D ����� ====================
-    /// ���� 3D �������Ⱦ��
+    // ==================== 3D �����?====================
+    /// ���� 3D �������Ⱦ��?
     VIZ_API Volume3DHandle Volume3D_Create();
-    /// ���� 3D �������Ⱦ��
+    /// ���� 3D �������Ⱦ��?
     VIZ_API void Volume3D_Destroy(Volume3DHandle handle);
     /// ����������
     VIZ_API NativeResult Volume3D_AddVolume(Volume3DHandle handle, VolumeHandle volume);
@@ -609,7 +610,7 @@ extern "C" {
     VIZ_API NativeResult TransferFunction_AddControlPoint(TransferFunctionHandle handle, float value, float r, float g, float b, float a);
     /// �Ƴ����Ƶ�
     VIZ_API NativeResult TransferFunction_RemoveControlPoint(TransferFunctionHandle handle, int index);
-    /// ������п��Ƶ�
+    /// ������п��Ƶ�?
     VIZ_API void TransferFunction_Clear(TransferFunctionHandle handle);
     /// ��ȡ���Ƶ�����
     VIZ_API int TransferFunction_GetControlPointCount(TransferFunctionHandle handle);
@@ -633,7 +634,7 @@ extern "C" {
     VIZ_API void Window_DestroyAllWindows();
     /// ����Ⱦ�������ڣ�֧�� APR/MPR/Volume3D��
     VIZ_API NativeResult Window_BindRenderer(WindowHandle handle, void* rendererHandle, int rendererType);
-    /// ����3D���ڵ�APR�������������3D��Ⱦ��
+    /// ����3D���ڵ�APR�������������?D��Ⱦ��
     VIZ_API NativeResult Window_Set3DViewAPRs(WindowHandle handle, void* aprAxial, void* aprCoronal, void* aprSagittal);
     // Per-window crop box visibility (does not change the global crop box state; only affects drawing/interaction for this window)
     VIZ_API NativeResult Window_SetCropBoxVisible(WindowHandle handle, bool visible);
@@ -682,7 +683,7 @@ extern "C" {
             char* outVersion,
             int versionSize
         );
-    /// ��ȡ���ھ�������ڰ� Electron div��
+    /// ��ȡ���ھ�������ڰ�?Electron div��
     VIZ_API void* Window_GetNativeHandle(WindowHandle handle);
     /// �����¼�ѭ������������
     VIZ_API bool Window_PollEvents(WindowHandle handle);
@@ -709,7 +710,7 @@ extern "C" {
     VIZ_API WindowHandle OffscreenContext_Create(int width, int height);
     /// ��������������
     VIZ_API void OffscreenContext_Destroy(WindowHandle handle);
-    /// ��Ⱦ�� FBO ����ȡ�������ݣ�RGBA��ʽ����targetWidth/targetHeight ָ������ߴ�
+    /// ��Ⱦ�� FBO ����ȡ�������ݣ�RGBA��ʽ����targetWidth/targetHeight ָ������ߴ�?
     VIZ_API FrameBuffer* OffscreenContext_RenderToBuffer(WindowHandle handle, void* rendererHandle, int rendererType, int targetWidth, int targetHeight);
     /// �ͷ� FrameBuffer
     VIZ_API void FrameBuffer_Destroy(FrameBuffer* buffer);
@@ -737,7 +738,7 @@ extern "C" {
     /// ��ȡ���в�������Ŀ
     VIZ_API int Measurement_GetCompletedCount();
 
-    /// ��ȡ���в�������（outItems ���鳤�� maxItems）
+    /// ��ȡ���в�������（outItems ���鳤�� maxItems�?
     /// @return ʵ��д��Ŀ
     VIZ_API int Measurement_GetCompletedList(CompletedMeasurementInfo* outItems, int maxItems);
     // Returns number of points written (0 if not available / not supported).
@@ -748,17 +749,17 @@ extern "C" {
     VIZ_API bool Measurement_Delete(int measurementId);
 
     // ==================== Session-aware Measurement APIs ====================
-    /// 获取 session 内已完成的测量数量
+    /// 获取 session 内已完成的测量数�?
     VIZ_API int Measurement_GetCompletedCountForSession(const char* sessionId);
-    /// 获取 session 内已完成的测量列表
+    /// 获取 session 内已完成的测量列�?
     VIZ_API int Measurement_GetCompletedListForSession(const char* sessionId, CompletedMeasurementInfo* outItems, int maxItems);
     /// 删除 session 内的指定测量
     VIZ_API bool Measurement_DeleteForSession(const char* sessionId, int measurementId);
-    /// 清除 session 内所有测量
+    /// 清除 session 内所有测�?
     VIZ_API void Measurement_ClearAllForSession(const char* sessionId);
     // ==================== End Session-aware Measurement APIs ====================
 
-    /// ��ȡ ROI/���� (Rect/Circle) ������� HU ֱ��ͼ (256 bins)
+    /// ��ȡ ROI/���� (Rect/Circle) �������?HU ֱ��ͼ (256 bins)
     /// outBins must point to an array of 256 ints.
     VIZ_API NativeResult Measurement_GetRegionHistogram(
         const char* sessionId,
@@ -788,7 +789,7 @@ extern "C" {
 
     /// ���ӿ��Ƶ㵽����
     VIZ_API void Tool_AddPoint(ToolHandle tool, float x, float y);
-    /// ��ɹ��߻���
+    /// ��ɹ��߻���?
     VIZ_API void Tool_Finish(ToolHandle tool);
     /// ��ȡ������������롢�Ƕȡ�����ȣ�
     VIZ_API float Tool_GetMeasurement(ToolHandle tool);
@@ -807,7 +808,7 @@ extern "C" {
     VIZ_API ToolHandle ToolManager_GetTool(ToolManagerHandle manager, int index);
     /// ɾ������
     VIZ_API void ToolManager_DeleteTool(ToolManagerHandle manager, ToolHandle tool);
-    /// ������й���
+    /// ������й���?
     VIZ_API void ToolManager_Clear(ToolManagerHandle manager);
 
     // ==================== Mask�༭����API ====================
@@ -862,7 +863,7 @@ extern "C" {
     VIZ_API void MPR_SetMaskOverlayColor(MPRHandle handle, int overlayIndex,
                                          float r, float g, float b, float a);
     
-    /// ����Mask���Ӳ�ɼ���
+    /// ����Mask���Ӳ�ɼ���?
     VIZ_API void MPR_SetMaskOverlayVisible(MPRHandle handle, int overlayIndex, bool visible);
     
     /// �������Mask���Ӳ�
@@ -878,6 +879,19 @@ extern "C" {
     
     /// �������д����ػ�
     VIZ_API void Window_InvalidateAll();
+
+
+    // ==================== Window Screenshot API ====================
+    
+    /// Capture window content by HWND (Windows native screenshot)
+    /// Returns RGBA pixel data. Caller must free() the returned buffer.
+    /// width/height: output image dimensions
+    /// Returns NULL on failure
+    VIZ_API void* Window_CaptureByHWND(void* hwnd, int* width, int* height);
+    
+    /// Save window screenshot to PNG file by HWND
+    /// Returns NATIVE_OK on success
+    VIZ_API NativeResult Window_SaveScreenshotByHWND(void* hwnd, const char* filepath);
 
 #ifdef __cplusplus
 }
