@@ -93,11 +93,12 @@ electron.contextBridge.exposeInMainWorld("visualizationApi", {
     width,
     height
   ),
-  captureAPRScreenshots: (sessionId, folderPath, selection, width, height) => electron.ipcRenderer.invoke(
+  captureAPRScreenshots: (sessionId, folderPath, selection, windowHwndsOrWidth, width, height) => electron.ipcRenderer.invoke(
     "viz:capture-apr-screenshots",
     sessionId,
     folderPath,
     selection,
+    windowHwndsOrWidth,
     width,
     height
   ),
@@ -129,8 +130,9 @@ electron.contextBridge.exposeInMainWorld("visualizationApi", {
   getCropShape: () => electron.ipcRenderer.invoke("viz:get-crop-shape"),
   setCropCylinderDirection: (direction) => electron.ipcRenderer.invoke("viz:set-crop-cylinder-direction", direction),
   getCropCylinderDirection: () => electron.ipcRenderer.invoke("viz:get-crop-cylinder-direction"),
-  setCropBoxSize: (sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth) => electron.ipcRenderer.invoke(
+  setCropBoxSize: (sessionId, sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth) => electron.ipcRenderer.invoke(
     "viz:set-crop-box-size",
+    sessionId,
     sizeX,
     sizeY,
     sizeZ,
@@ -138,7 +140,7 @@ electron.contextBridge.exposeInMainWorld("visualizationApi", {
     volumeHeight,
     volumeDepth
   ),
-  getCropSettings: () => electron.ipcRenderer.invoke("viz:get-crop-settings"),
+  getCropSettings: (sessionId) => electron.ipcRenderer.invoke("viz:get-crop-settings", sessionId),
   processWindowEvents: () => electron.ipcRenderer.invoke("viz:process-window-events"),
   embedWindow: (windowId, x, y, width, height) => electron.ipcRenderer.invoke("viz:embed-window", windowId, x, y, width, height),
   renderAllViews: () => electron.ipcRenderer.invoke("viz:render-all-views"),
@@ -174,10 +176,11 @@ electron.contextBridge.exposeInMainWorld("visualizationApi", {
   raiseWindow: (windowId) => electron.ipcRenderer.invoke("viz:raise-window", windowId),
   setWindowToolType: (windowId, toolType) => electron.ipcRenderer.invoke("viz:set-window-tool-type", windowId, toolType),
   setWindowCropBoxVisible: (windowId, visible) => electron.ipcRenderer.invoke("viz:set-window-crop-box-visible", windowId, visible),
-  enableAPRCropBox: (enable) => electron.ipcRenderer.invoke("viz:enable-apr-crop-box", enable),
-  setAPRCropBox: (width, height, depth) => electron.ipcRenderer.invoke("viz:set-apr-crop-box", width, height, depth),
-  setAPRCropBoxRange: (xStart, xEnd, yStart, yEnd, zStart, zEnd) => electron.ipcRenderer.invoke(
+  enableAPRCropBox: (sessionId, enable) => electron.ipcRenderer.invoke("viz:enable-apr-crop-box", sessionId, enable),
+  setAPRCropBox: (sessionId, width, height, depth) => electron.ipcRenderer.invoke("viz:set-apr-crop-box", sessionId, width, height, depth),
+  setAPRCropBoxRange: (sessionId, xStart, xEnd, yStart, yEnd, zStart, zEnd) => electron.ipcRenderer.invoke(
     "viz:set-apr-crop-box-range",
+    sessionId,
     xStart,
     xEnd,
     yStart,
@@ -185,8 +188,8 @@ electron.contextBridge.exposeInMainWorld("visualizationApi", {
     zStart,
     zEnd
   ),
-  getAPRCropBox: () => electron.ipcRenderer.invoke("viz:get-apr-crop-box"),
-  isAPRCropBoxEnabled: () => electron.ipcRenderer.invoke("viz:is-apr-crop-box-enabled"),
+  getAPRCropBox: (sessionId) => electron.ipcRenderer.invoke("viz:get-apr-crop-box", sessionId),
+  isAPRCropBoxEnabled: (sessionId) => electron.ipcRenderer.invoke("viz:is-apr-crop-box-enabled", sessionId),
   getCompletedMeasurements: () => electron.ipcRenderer.invoke("viz:get-completed-measurements"),
   deleteMeasurement: (measurementId) => electron.ipcRenderer.invoke("viz:delete-measurement", measurementId),
   getMeasurementProfile: (sessionId, measurementId, maxPoints) => electron.ipcRenderer.invoke(

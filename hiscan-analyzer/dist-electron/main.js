@@ -36,6 +36,54 @@ const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 const IS_DEV = !app.isPackaged && !!VITE_DEV_SERVER_URL;
+function safeJsonStringify(value) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    try {
+      return JSON.stringify(String(value));
+    } catch {
+      return '"<unserializable>"';
+    }
+  }
+}
+function createCropTracer() {
+  const logPath = path.join(app.getPath("userData"), "crop_trace.log");
+  const trace = async (entry) => {
+    const line = safeJsonStringify(entry);
+    console.log(`[CropTrace] ${entry.tag}`, entry);
+    try {
+      await fs.promises.mkdir(path.dirname(logPath), { recursive: true });
+      await fs.promises.appendFile(logPath, line + "\n", "utf8");
+    } catch (e) {
+      console.warn("[CropTrace] Failed to append log:", e);
+    }
+  };
+  const nowIso = () => (/* @__PURE__ */ new Date()).toISOString();
+  const start = (tag, sessionId, data) => {
+    const t0 = Date.now();
+    void trace({
+      ts: nowIso(),
+      pid: process.pid,
+      tag: `${tag}:begin`,
+      sessionId,
+      data
+    });
+    return async (endTag, more) => {
+      const ms = Date.now() - t0;
+      await trace({
+        ts: nowIso(),
+        pid: process.pid,
+        tag: `${endTag}:end`,
+        sessionId,
+        ms,
+        data: more == null ? void 0 : more.data,
+        error: more == null ? void 0 : more.error
+      });
+    };
+  };
+  return { logPath, trace, start };
+}
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win = null;
 const windowLabWindows = /* @__PURE__ */ new Map();
@@ -1402,6 +1450,17 @@ function registerDialogHandlers() {
   });
 }
 function registerVisualizationHandlers(nativeHost) {
+  const cropTrace = createCropTracer();
+  const cropErrorMessage = (e) => {
+    const anyErr = e;
+    return (anyErr == null ? void 0 : anyErr.message) ?? String(e);
+  };
+  void cropTrace.trace({
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    pid: process.pid,
+    tag: "crop-trace:init",
+    data: { logPath: cropTrace.logPath }
+  });
   ipcMain.handle(
     "viz:create-apr",
     async (event, sessionId, folderPath) => {
@@ -1468,7 +1527,7 @@ function registerVisualizationHandlers(nativeHost) {
   );
   ipcMain.handle(
     "viz:capture-apr-screenshots",
-    async (_event, sessionId, folderPath, selection, width, height) => {
+    async (_event, sessionId, folderPath, selection, windowHwndsOrWidth, width, height) => {
       var _a;
       try {
         if (!nativeHost) {
@@ -1482,8 +1541,17 @@ function registerVisualizationHandlers(nativeHost) {
         }
         const outDir = path.join(folderPath, "ScreenCapture");
         await fs.promises.mkdir(outDir, { recursive: true });
-        const reqW = Number.isFinite(width) && width > 0 ? width : 1024;
-        const reqH = Number.isFinite(height) && height > 0 ? height : 1024;
+        let hwndMap;
+        let resolvedWidth = width;
+        let resolvedHeight = height;
+        if (windowHwndsOrWidth && typeof windowHwndsOrWidth === "object" && !Array.isArray(windowHwndsOrWidth)) {
+          hwndMap = windowHwndsOrWidth;
+        } else if (typeof windowHwndsOrWidth === "number") {
+          resolvedWidth = windowHwndsOrWidth;
+          resolvedHeight = width;
+        }
+        const reqW = Number.isFinite(resolvedWidth) && resolvedWidth > 0 ? resolvedWidth : 1024;
+        const reqH = Number.isFinite(resolvedHeight) && resolvedHeight > 0 ? resolvedHeight : 1024;
         const expandSelection = (sel) => {
           const raw = Array.isArray(sel) ? sel : [];
           const out = [];
@@ -1512,30 +1580,70 @@ function registerVisualizationHandlers(nativeHost) {
             const r = buf[i];
             buf[i] = buf[i + 2];
             buf[i + 2] = r;
+            buf[i + 3] = 255;
           }
+        };
+        const getHwndForView = (viewName) => {
+          if (!hwndMap) return null;
+          const direct = hwndMap[viewName] ?? hwndMap[viewName.toLowerCase()];
+          if (direct) return String(direct);
+          const byId = hwndMap[String(viewName)];
+          return byId ? String(byId) : null;
+        };
+        const normalizeBgraToSize = (bgra, srcW, srcH, dstW, dstH) => {
+          if (srcW === dstW && srcH === dstH) return bgra;
+          const img = nativeImage.createFromBitmap(bgra, {
+            width: srcW,
+            height: srcH
+          });
+          const resized = img.resize({ width: dstW, height: dstH });
+          return resized.toBitmap();
         };
         const renderViewToBgra = async (viewName, w, h) => {
           try {
-            const windowId = viewName;
-            console.log(
-              `[Screenshot] Using windowId: ${windowId} for viewName: ${viewName}`
-            );
-            const r = await nativeHost.invoke(
-              "renderAPRSlice",
-              sessionId,
-              windowId,
-              w,
-              h
-            );
-            if (!(r == null ? void 0 : r.success)) {
-              return {
-                ok: false,
-                error: (r == null ? void 0 : r.error) || `renderAPRSlice failed for ${viewName}`
-              };
+            const hwnd = getHwndForView(viewName);
+            let outW = w;
+            let outH = h;
+            let pixelData = null;
+            if (hwnd) {
+              console.log(
+                `[Screenshot] Using HWND capture for ${viewName}: hwnd=${hwnd}`
+              );
+              const r = await nativeHost.invoke(
+                "captureWindowByHWND",
+                hwnd
+              );
+              outW = Number(r == null ? void 0 : r.width);
+              outH = Number(r == null ? void 0 : r.height);
+              pixelData = r == null ? void 0 : r.data;
+            } else {
+              if (viewName === "3d") {
+                return {
+                  ok: false,
+                  error: "Missing 3D HWND for screenshot (cannot use renderAPRSlice for 3d)"
+                };
+              }
+              const windowId = viewName;
+              console.log(
+                `[Screenshot] Using APR slice for ${viewName} (${w}x${h})`
+              );
+              const r = await nativeHost.invoke(
+                "renderAPRSlice",
+                sessionId,
+                windowId,
+                w,
+                h
+              );
+              if (!(r == null ? void 0 : r.success)) {
+                return {
+                  ok: false,
+                  error: (r == null ? void 0 : r.error) || `renderAPRSlice failed for ${viewName}`
+                };
+              }
+              outW = Number((r == null ? void 0 : r.width) ?? w);
+              outH = Number((r == null ? void 0 : r.height) ?? h);
+              pixelData = r == null ? void 0 : r.pixelData;
             }
-            const outW = Number((r == null ? void 0 : r.width) ?? w);
-            const outH = Number((r == null ? void 0 : r.height) ?? h);
-            const pixelData = r == null ? void 0 : r.pixelData;
             if (!pixelData || !Number.isFinite(outW) || !Number.isFinite(outH) || outW <= 0 || outH <= 0) {
               return {
                 ok: false,
@@ -1551,7 +1659,8 @@ function registerVisualizationHandlers(nativeHost) {
               };
             }
             rgbaToBgraInPlace(rgba);
-            return { ok: true, bgra: rgba, width: outW, height: outH };
+            const normalized = normalizeBgraToSize(rgba, outW, outH, w, h);
+            return { ok: true, bgra: normalized, width: w, height: h };
           } catch (e) {
             const errorMsg = (e == null ? void 0 : e.message) || (typeof e === "object" ? JSON.stringify(e) : String(e));
             console.error(
@@ -1803,39 +1912,91 @@ function registerVisualizationHandlers(nativeHost) {
     }
   );
   ipcMain.handle("viz:crop-volume", async (_event, sessionId) => {
+    const end = cropTrace.start("viz:crop-volume", sessionId);
     try {
       if (!nativeHost) {
+        await end("viz:crop-volume", {
+          error: "Visualization API not available"
+        });
         return { success: false, error: "Visualization API not available" };
       }
-      return nativeHost.invoke("cropVolume", sessionId);
+      const cropSettings = await nativeHost.invoke("getAPRCropSettings", sessionId).catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      const aprStateAxial = await nativeHost.invoke("getAPRState", sessionId, "axial").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      await cropTrace.trace({
+        ts: (/* @__PURE__ */ new Date()).toISOString(),
+        pid: process.pid,
+        tag: "viz:crop-volume:snapshot",
+        sessionId,
+        data: { cropSettings, aprStateAxial }
+      });
+      const result = await nativeHost.invoke("cropVolume", sessionId);
+      await end("viz:crop-volume", { data: result });
+      return result;
     } catch (e) {
       console.error("[viz:crop-volume] Error:", e);
+      await end("viz:crop-volume", { error: (e == null ? void 0 : e.message) ?? String(e) });
       return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
     }
   });
   ipcMain.handle(
     "viz:apply-cropped-volume",
     async (_event, sessionId) => {
+      const end = cropTrace.start("viz:apply-cropped-volume", sessionId);
       try {
         if (!nativeHost) {
+          await end("viz:apply-cropped-volume", {
+            error: "Visualization API not available"
+          });
           return { success: false, error: "Visualization API not available" };
         }
-        return nativeHost.invoke("applyCroppedVolumeToSession", sessionId);
+        const cropSettings = await nativeHost.invoke("getAPRCropSettings", sessionId).catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+        const aprStateAxialBefore = await nativeHost.invoke("getAPRState", sessionId, "axial").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+        await cropTrace.trace({
+          ts: (/* @__PURE__ */ new Date()).toISOString(),
+          pid: process.pid,
+          tag: "viz:apply-cropped-volume:snapshot:before",
+          sessionId,
+          data: { cropSettings, aprStateAxialBefore }
+        });
+        const result = await nativeHost.invoke(
+          "applyCroppedVolumeToSession",
+          sessionId
+        );
+        const aprStateAxialAfter = await nativeHost.invoke("getAPRState", sessionId, "axial").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+        await cropTrace.trace({
+          ts: (/* @__PURE__ */ new Date()).toISOString(),
+          pid: process.pid,
+          tag: "viz:apply-cropped-volume:snapshot:after",
+          sessionId,
+          data: { aprStateAxialAfter }
+        });
+        await end("viz:apply-cropped-volume", { data: result });
+        return result;
       } catch (e) {
         console.error("[viz:apply-cropped-volume] Error:", e);
+        await end("viz:apply-cropped-volume", {
+          error: (e == null ? void 0 : e.message) ?? String(e)
+        });
         return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
       }
     }
   );
   ipcMain.handle("viz:set-crop-shape", async (_event, shape) => {
+    const end = cropTrace.start("viz:set-crop-shape", void 0, { shape });
     try {
       if (!nativeHost) {
+        await end("viz:set-crop-shape", {
+          error: "Visualization API not available"
+        });
         return { success: false, error: "Visualization API not available" };
       }
       await nativeHost.invoke("setAPRCropShape", shape);
+      const settings = await nativeHost.invoke("getAPRCropSettings").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      await end("viz:set-crop-shape", { data: { success: true, settings } });
       return { success: true };
     } catch (e) {
       console.error("[viz:set-crop-shape] Error:", e);
+      await end("viz:set-crop-shape", { error: (e == null ? void 0 : e.message) ?? String(e) });
       return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
     }
   });
@@ -1851,14 +2012,31 @@ function registerVisualizationHandlers(nativeHost) {
   ipcMain.handle(
     "viz:set-crop-cylinder-direction",
     async (_event, direction) => {
+      const end = cropTrace.start(
+        "viz:set-crop-cylinder-direction",
+        void 0,
+        {
+          direction
+        }
+      );
       try {
         if (!nativeHost) {
+          await end("viz:set-crop-cylinder-direction", {
+            error: "Visualization API not available"
+          });
           return { success: false, error: "Visualization API not available" };
         }
         await nativeHost.invoke("setAPRCropCylinderDirection", direction);
+        const settings = await nativeHost.invoke("getAPRCropSettings").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+        await end("viz:set-crop-cylinder-direction", {
+          data: { success: true, settings }
+        });
         return { success: true };
       } catch (e) {
         console.error("[viz:set-crop-cylinder-direction] Error:", e);
+        await end("viz:set-crop-cylinder-direction", {
+          error: (e == null ? void 0 : e.message) ?? String(e)
+        });
         return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
       }
     }
@@ -1872,13 +2050,42 @@ function registerVisualizationHandlers(nativeHost) {
       return 0;
     }
   });
-  ipcMain.handle(
-    "viz:set-crop-box-size",
-    async (_event, sizeX, sizeY, sizeZ, volumeWidth, volumeHeight, volumeDepth) => {
-      try {
-        if (!nativeHost) {
-          return { success: false, error: "Visualization API not available" };
-        }
+  ipcMain.handle("viz:set-crop-box-size", async (_event, ...args) => {
+    const sessionId = typeof (args == null ? void 0 : args[0]) === "string" ? args[0] : void 0;
+    const offset = sessionId ? 1 : 0;
+    const sizeX = Number((args == null ? void 0 : args[0 + offset]) ?? 0);
+    const sizeY = Number((args == null ? void 0 : args[1 + offset]) ?? 0);
+    const sizeZ = Number((args == null ? void 0 : args[2 + offset]) ?? 0);
+    const volumeWidth = Number((args == null ? void 0 : args[3 + offset]) ?? 0);
+    const volumeHeight = Number((args == null ? void 0 : args[4 + offset]) ?? 0);
+    const volumeDepth = Number((args == null ? void 0 : args[5 + offset]) ?? 0);
+    const end = cropTrace.start("viz:set-crop-box-size", sessionId, {
+      sizeX,
+      sizeY,
+      sizeZ,
+      volumeWidth,
+      volumeHeight,
+      volumeDepth
+    });
+    try {
+      if (!nativeHost) {
+        await end("viz:set-crop-box-size", {
+          error: "Visualization API not available"
+        });
+        return { success: false, error: "Visualization API not available" };
+      }
+      if (sessionId) {
+        await nativeHost.invoke(
+          "setAPRCropBoxSize",
+          sessionId,
+          sizeX,
+          sizeY,
+          sizeZ,
+          volumeWidth,
+          volumeHeight,
+          volumeDepth
+        );
+      } else {
         await nativeHost.invoke(
           "setAPRCropBoxSize",
           sizeX,
@@ -1888,35 +2095,51 @@ function registerVisualizationHandlers(nativeHost) {
           volumeHeight,
           volumeDepth
         );
-        return { success: true };
+      }
+      const settings = await nativeHost.invoke("getAPRCropSettings", sessionId ?? "").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      await end("viz:set-crop-box-size", {
+        data: { success: true, settings }
+      });
+      return { success: true };
+    } catch (e) {
+      console.error("[viz:set-crop-box-size] Error:", e);
+      await end("viz:set-crop-box-size", { error: (e == null ? void 0 : e.message) ?? String(e) });
+      return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
+    }
+  });
+  ipcMain.handle(
+    "viz:get-crop-settings",
+    async (_event, sessionId) => {
+      try {
+        if (!nativeHost) {
+          return {
+            shape: 0,
+            cylinderDirection: 0,
+            enabled: false,
+            cropBox: {}
+          };
+        }
+        return await nativeHost.invoke("getAPRCropSettings", sessionId ?? "") ?? {
+          shape: 0,
+          cylinderDirection: 0,
+          enabled: false,
+          cropBox: {}
+        };
       } catch (e) {
-        console.error("[viz:set-crop-box-size] Error:", e);
-        return { success: false, error: (e == null ? void 0 : e.message) ?? String(e) };
+        console.error("[viz:get-crop-settings] Error:", e);
+        return { shape: 0, cylinderDirection: 0, enabled: false, cropBox: {} };
       }
     }
   );
-  ipcMain.handle("viz:get-crop-settings", async () => {
-    try {
-      if (!nativeHost) {
-        return { shape: 0, cylinderDirection: 0, enabled: false, cropBox: {} };
-      }
-      return await nativeHost.invoke("getAPRCropSettings") ?? {
-        shape: 0,
-        cylinderDirection: 0,
-        enabled: false,
-        cropBox: {}
-      };
-    } catch (e) {
-      console.error("[viz:get-crop-settings] Error:", e);
-      return { shape: 0, cylinderDirection: 0, enabled: false, cropBox: {} };
-    }
-  });
   ipcMain.handle("viz:process-window-events", async () => {
+    const end = cropTrace.start("viz:process-window-events");
     try {
       if (!nativeHost) return;
       await nativeHost.invoke("processWindowEvents");
+      await end("viz:process-window-events");
     } catch (e) {
       console.error("[viz:process-window-events] Error:", e);
+      await end("viz:process-window-events", { error: cropErrorMessage(e) });
     }
   });
   ipcMain.handle("viz:destroy-apr", async (_event, sessionId) => {
@@ -2336,81 +2559,163 @@ function registerVisualizationHandlers(nativeHost) {
   ipcMain.handle(
     "viz:set-window-crop-box-visible",
     async (_event, windowId, visible) => {
+      const end = cropTrace.start(
+        "viz:set-window-crop-box-visible",
+        void 0,
+        {
+          windowId,
+          visible
+        }
+      );
       try {
         if (!nativeHost) return false;
-        return await nativeHost.invoke(
+        const ok = await nativeHost.invoke(
           "setWindowCropBoxVisible",
           windowId,
           visible
         ) ?? false;
+        await end("viz:set-window-crop-box-visible", { data: { ok } });
+        return ok;
       } catch (e) {
         console.error("[viz:set-window-crop-box-visible] Error:", e);
+        await end("viz:set-window-crop-box-visible", {
+          error: cropErrorMessage(e)
+        });
         return false;
       }
     }
   );
-  ipcMain.handle("viz:enable-apr-crop-box", async (_event, enable) => {
+  ipcMain.handle("viz:enable-apr-crop-box", async (_event, ...args) => {
+    const sessionId = typeof (args == null ? void 0 : args[0]) === "string" ? args[0] : void 0;
+    const enable = Boolean(sessionId ? args == null ? void 0 : args[1] : args == null ? void 0 : args[0]);
+    const end = cropTrace.start("viz:enable-apr-crop-box", sessionId, {
+      enable
+    });
     try {
       if (!nativeHost) return false;
-      await nativeHost.invoke("enableAPRCropBox", enable);
+      if (sessionId) {
+        await nativeHost.invoke("enableAPRCropBox", sessionId, enable);
+      } else {
+        await nativeHost.invoke("enableAPRCropBox", enable);
+      }
+      const settings = await nativeHost.invoke("getAPRCropSettings", sessionId ?? "").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      await end("viz:enable-apr-crop-box", { data: { ok: true, settings } });
       return true;
     } catch (e) {
       console.error("[viz:enable-apr-crop-box] Error:", e);
+      await end("viz:enable-apr-crop-box", { error: cropErrorMessage(e) });
+      return false;
+    }
+  });
+  ipcMain.handle("viz:set-apr-crop-box", async (_event, ...args) => {
+    const sessionId = typeof (args == null ? void 0 : args[0]) === "string" ? args[0] : void 0;
+    const offset = sessionId ? 1 : 0;
+    const width = Number((args == null ? void 0 : args[0 + offset]) ?? 0);
+    const height = Number((args == null ? void 0 : args[1 + offset]) ?? 0);
+    const depth = Number((args == null ? void 0 : args[2 + offset]) ?? 0);
+    const end = cropTrace.start("viz:set-apr-crop-box", sessionId, {
+      width,
+      height,
+      depth
+    });
+    try {
+      if (!nativeHost) return false;
+      if (sessionId) {
+        await nativeHost.invoke(
+          "setAPRCropBox",
+          sessionId,
+          width,
+          height,
+          depth
+        );
+      } else {
+        await nativeHost.invoke("setAPRCropBox", width, height, depth);
+      }
+      const settings = await nativeHost.invoke("getAPRCropSettings", sessionId ?? "").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+      await end("viz:set-apr-crop-box", { data: { ok: true, settings } });
+      return true;
+    } catch (e) {
+      console.error("[viz:set-apr-crop-box] Error:", e);
+      await end("viz:set-apr-crop-box", { error: cropErrorMessage(e) });
       return false;
     }
   });
   ipcMain.handle(
-    "viz:set-apr-crop-box",
-    async (_event, width, height, depth) => {
-      try {
-        if (!nativeHost) return false;
-        await nativeHost.invoke("setAPRCropBox", width, height, depth);
-        return true;
-      } catch (e) {
-        console.error("[viz:set-apr-crop-box] Error:", e);
-        return false;
-      }
-    }
-  );
-  ipcMain.handle(
     "viz:set-apr-crop-box-range",
-    async (_event, xStart, xEnd, yStart, yEnd, zStart, zEnd) => {
+    async (_event, ...args) => {
+      const sessionId = typeof (args == null ? void 0 : args[0]) === "string" ? args[0] : void 0;
+      const offset = sessionId ? 1 : 0;
+      const xStart = Number(args == null ? void 0 : args[0 + offset]);
+      const xEnd = Number(args == null ? void 0 : args[1 + offset]);
+      const yStart = Number(args == null ? void 0 : args[2 + offset]);
+      const yEnd = Number(args == null ? void 0 : args[3 + offset]);
+      const zStart = Number(args == null ? void 0 : args[4 + offset]);
+      const zEnd = Number(args == null ? void 0 : args[5 + offset]);
+      const end = cropTrace.start("viz:set-apr-crop-box-range", sessionId, {
+        xStart,
+        xEnd,
+        yStart,
+        yEnd,
+        zStart,
+        zEnd
+      });
       try {
         if (!nativeHost) return false;
-        await nativeHost.invoke(
-          "setAPRCropBoxRange",
-          xStart,
-          xEnd,
-          yStart,
-          yEnd,
-          zStart,
-          zEnd
-        );
+        if (sessionId) {
+          await nativeHost.invoke(
+            "setAPRCropBoxRange",
+            sessionId,
+            xStart,
+            xEnd,
+            yStart,
+            yEnd,
+            zStart,
+            zEnd
+          );
+        } else {
+          await nativeHost.invoke(
+            "setAPRCropBoxRange",
+            xStart,
+            xEnd,
+            yStart,
+            yEnd,
+            zStart,
+            zEnd
+          );
+        }
+        const settings = await nativeHost.invoke("getAPRCropSettings", sessionId ?? "").catch((e) => ({ error: (e == null ? void 0 : e.message) ?? String(e) }));
+        await end("viz:set-apr-crop-box-range", {
+          data: { ok: true, settings }
+        });
         return true;
       } catch (e) {
         console.error("[viz:set-apr-crop-box-range] Error:", e);
+        await end("viz:set-apr-crop-box-range", { error: cropErrorMessage(e) });
         return false;
       }
     }
   );
-  ipcMain.handle("viz:get-apr-crop-box", async () => {
+  ipcMain.handle("viz:get-apr-crop-box", async (_event, sessionId) => {
     try {
       if (!nativeHost) return {};
-      return await nativeHost.invoke("getAPRCropBox") ?? {};
+      return await nativeHost.invoke("getAPRCropBox", sessionId ?? "") ?? {};
     } catch (e) {
       console.error("[viz:get-apr-crop-box] Error:", e);
       return {};
     }
   });
-  ipcMain.handle("viz:is-apr-crop-box-enabled", async () => {
-    try {
-      if (!nativeHost) return false;
-      return await nativeHost.invoke("isAPRCropBoxEnabled") ?? false;
-    } catch (e) {
-      console.error("[viz:is-apr-crop-box-enabled] Error:", e);
-      return false;
+  ipcMain.handle(
+    "viz:is-apr-crop-box-enabled",
+    async (_event, sessionId) => {
+      try {
+        if (!nativeHost) return false;
+        return await nativeHost.invoke("isAPRCropBoxEnabled", sessionId ?? "") ?? false;
+      } catch (e) {
+        console.error("[viz:is-apr-crop-box-enabled] Error:", e);
+        return false;
+      }
     }
-  });
+  );
   ipcMain.handle("viz:get-completed-measurements", async () => {
     try {
       if (!nativeHost) return [];

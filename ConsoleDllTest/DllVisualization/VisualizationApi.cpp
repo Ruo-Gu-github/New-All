@@ -5251,18 +5251,10 @@ static LRESULT CALLBACK Win32WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
                 else if (ctx->is3DView && ctx->aprAxial) {
                     // Split into independent renderer classes/files.
                     if (ctx->threeDRendererKind == 2) {
-                        RoiOrthogonal3DRenderer::Render(
-                            static_cast<APRHandle>(ctx->aprAxial),
-                            static_cast<APRHandle>(ctx->aprCoronal),
-                            static_cast<APRHandle>(ctx->aprSagittal),
-                            ctx->width,
-                            ctx->height,
-                            ctx->viewRotMat,
-                            ctx->viewRotMatInitialized,
-                            ctx->viewZoom,
-                            ctx->viewPanX,
-                            ctx->viewPanY
-                        );
+                        // ROI editor 3D window: temporarily disable rendering.
+                        // Keep the window black by clearing and swapping.
+                        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     } else if (ctx->threeDRendererKind == 3) {
                         ReconstructionRaycast3DRenderer::Render(ctx);
                     } else {
@@ -17679,7 +17671,7 @@ VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight)
     bi.biBitCount = 32;
     bi.biCompression = BI_RGB;
 
-    size_t dataSize = width * height * 4;
+    size_t dataSize = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
     void* pixelData = malloc(dataSize);
     
     if (!pixelData) {
@@ -17690,8 +17682,12 @@ VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight)
         return nullptr;
     }
 
-    if (!GetDIBits(hdcMemory, hbmScreen, 0, height, pixelData, 
-                   (BITMAPINFO*)&bi, DIB_RGB_COLORS)) {
+    auto ReadBitmapToBuffer = [&]() -> bool {
+        return GetDIBits(hdcMemory, hbmScreen, 0, height, pixelData,
+                         (BITMAPINFO*)&bi, DIB_RGB_COLORS) != 0;
+    };
+
+    if (!ReadBitmapToBuffer()) {
         free(pixelData);
         DeleteObject(hbmScreen);
         DeleteDC(hdcMemory);
@@ -17700,7 +17696,49 @@ VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight)
         return nullptr;
     }
 
-    // Cleanup
+    // Heuristic: detect black frames (common for GPU/OpenGL windows with PrintWindow).
+    // If mostly black, fallback to copying from the desktop (visible content).
+    auto LooksMostlyBlack = [&]() -> bool {
+        const unsigned char* p = static_cast<const unsigned char*>(pixelData);
+        if (!p) return true;
+        const int samplesX = 32;
+        const int samplesY = 32;
+        int nonBlack = 0;
+        for (int sy = 0; sy < samplesY; sy++) {
+            int y = (height - 1) * sy / (samplesY - 1);
+            for (int sx = 0; sx < samplesX; sx++) {
+                int x = (width - 1) * sx / (samplesX - 1);
+                size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)) * 4;
+                unsigned char b = p[idx + 0];
+                unsigned char g = p[idx + 1];
+                unsigned char r = p[idx + 2];
+                if (r > 4 || g > 4 || b > 4) {
+                    nonBlack++;
+                    if (nonBlack > 8) return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    if (LooksMostlyBlack()) {
+        // Capture from the desktop using the client rect's screen coordinates.
+        POINT pt = { 0, 0 };
+        if (ClientToScreen(hwnd, &pt)) {
+            HDC hdcScreen = GetDC(nullptr);
+            if (hdcScreen) {
+                // CAPTUREBLT helps with layered windows; requires windows.h.
+                const DWORD rop = SRCCOPY | CAPTUREBLT;
+                if (BitBlt(hdcMemory, 0, 0, width, height, hdcScreen, pt.x, pt.y, rop)) {
+                    // Re-read bitmap bits.
+                    ReadBitmapToBuffer();
+                }
+                ReleaseDC(nullptr, hdcScreen);
+            }
+        }
+    }
+
+    // Cleanup (GDI objects)
     DeleteObject(hbmScreen);
     DeleteDC(hdcMemory);
     ReleaseDC(hwnd, hdcWindow);
@@ -17711,6 +17749,8 @@ VIZ_API void* Window_CaptureByHWND(void* hwndPtr, int* outWidth, int* outHeight)
         unsigned char temp = pixels[i * 4 + 0];  // B
         pixels[i * 4 + 0] = pixels[i * 4 + 2];   // R
         pixels[i * 4 + 2] = temp;                // B
+        // Many capture paths leave alpha as 0; force opaque so PNGs display correctly.
+        pixels[i * 4 + 3] = 255;
     }
 
     *outWidth = width;
