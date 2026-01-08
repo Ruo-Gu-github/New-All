@@ -88,6 +88,10 @@ const histogramData = ref<number[]>([]); // 直方图数据
 const histogramMinValue = ref(0); // CT值最小值
 const histogramMaxValue = ref(255); // CT值最大值
 
+// ROI 2D Mask inline panels (no BrowserWindow)
+const showThresholdPanel = ref(false);
+const showSaveMaskPanel = ref(false);
+
 // Morphology dialog state
 const morphologyOperation = ref("dilate"); // dilate, erode, open, close
 const morphologyKernel = ref(3);
@@ -691,6 +695,115 @@ onMounted(() => {
   });
 });
 
+function clampThresholdRange() {
+  const minBound = histogramMinValue.value;
+  const maxBound = histogramMaxValue.value;
+
+  if (rigMarkMin.value < minBound) rigMarkMin.value = minBound;
+  if (rigMarkMax.value > maxBound) rigMarkMax.value = maxBound;
+
+  if (rigMarkMin.value > rigMarkMax.value) {
+    const tmp = rigMarkMin.value;
+    rigMarkMin.value = rigMarkMax.value;
+    rigMarkMax.value = tmp;
+  }
+}
+
+async function toggleThresholdPanel() {
+  showSaveMaskPanel.value = false;
+  showThresholdPanel.value = !showThresholdPanel.value;
+
+  if (showThresholdPanel.value) {
+    if (!sessionId.value) {
+      showThresholdPanel.value = false;
+      ElMessage.error("请先加载APR视图");
+      return;
+    }
+
+    const defaultColor = pickMaskColor16(region2DList.value.length);
+    rigMarkColor.value = defaultColor;
+
+    // Initialize to full histogram range.
+    rigMarkMin.value = histogramMinValue.value;
+    rigMarkMax.value = histogramMaxValue.value;
+    clampThresholdRange();
+
+    await nextTick();
+    drawHistogram();
+    await updateMaskPreview();
+  } else {
+    await closeRigMarkDialog();
+  }
+}
+
+async function toggleSaveMaskPanel() {
+  showThresholdPanel.value = false;
+  await closeRigMarkDialog();
+  showSaveMaskPanel.value = !showSaveMaskPanel.value;
+}
+
+let previewDebounceTimer: any = null;
+watch(
+  [rigMarkMin, rigMarkMax, rigMarkColor, showThresholdPanel],
+  async () => {
+    if (!showThresholdPanel.value) return;
+    clampThresholdRange();
+    drawHistogram();
+
+    if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
+    previewDebounceTimer = setTimeout(() => {
+      updateMaskPreview();
+    }, 50);
+  },
+  { flush: "post" }
+);
+
+async function confirmThresholdMask() {
+  if (!sessionId.value) {
+    ElMessage.error("未加载APR视图");
+    return;
+  }
+
+  try {
+    clampThresholdRange();
+    const color = rigMarkColor.value || pickMaskColor16(region2DList.value.length);
+    const name = `Mask_${region2DList.value.length + 1}`;
+
+    const result = await window.visualizationApi.createMaskFromThreshold(
+      sessionId.value,
+      rigMarkMin.value,
+      rigMarkMax.value,
+      color,
+      name
+    );
+
+    if (result.success && result.maskId !== undefined) {
+      region2DList.value.push({
+        maskId: result.maskId,
+        color,
+        visible: true,
+        min: rigMarkMin.value,
+        max: rigMarkMax.value,
+        name,
+      });
+
+      await window.visualizationApi.clearPreviewMask(sessionId.value);
+      showThresholdPanel.value = false;
+      ElMessage.success("阈值分割应用成功");
+    } else {
+      throw new Error(result.error || "创建mask失败");
+    }
+  } catch (error: any) {
+    console.error("[ROI] 阈值分割失败:", error);
+    ElMessage.error(`阈值分割失败: ${error.message}`);
+  }
+}
+
+async function confirmSaveMaskPanel() {
+  await saveMask();
+  showSaveMaskPanel.value = false;
+}
+
 // Handler functions for dialogs and deletion
 async function deleteSelectedRegion2D() {
   if (!selectedRegion2D.value) {
@@ -919,53 +1032,8 @@ function drawHistogram() {
 
 // 打开RigMark对话框时设置预览颜色并绘制直方图
 async function openRigMarkDialog() {
-  if (!sessionId.value) {
-    ElMessage.error("未加载APR视图");
-    return;
-  }
-
-  console.log(
-    "[openRigMarkDialog] Opening dialog with sessionId:",
-    sessionId.value
-  );
-
-  try {
-    // 先获取直方图数据
-    const histogramResult = await window.visualizationApi.getVolumeHistogram(
-      sessionId.value
-    );
-    console.log("[openRigMarkDialog] Histogram result:", histogramResult);
-
-    if (!histogramResult || !histogramResult.data) {
-      ElMessage.error("获取直方图数据失败");
-      return;
-    }
-
-    // 使用独立的 BrowserWindow，传入直方图数据
-    if (window.nativeBridge?.dialog?.open) {
-      const defaultColor = pickMaskColor16(region2DList.value.length);
-      const result = await window.nativeBridge.dialog.open("rigmark", {
-        sessionId: sessionId.value,
-        dialogType: "rigmark",
-        histogramData: histogramResult.data,
-        minValue: histogramResult.minValue,
-        maxValue: histogramResult.maxValue,
-        defaultColor,
-      });
-
-      console.log("[openRigMarkDialog] Dialog open result:", result);
-
-      if (!result.success) {
-        ElMessage.error(result.error || "打开对话框失败");
-      }
-    } else {
-      ElMessage.error("Dialog API 未初始化");
-      console.error("[openRigMarkDialog] Dialog API not available");
-    }
-  } catch (error: any) {
-    console.error("[openRigMarkDialog] Error:", error);
-    ElMessage.error(`打开对话框失败: ${error.message}`);
-  }
+  // Legacy entrypoint: keep for compatibility, but do NOT open BrowserWindow.
+  await toggleThresholdPanel();
 }
 
 // 关闭RigMark对话框并清除预览（由独立窗口调用）
@@ -1338,21 +1406,8 @@ async function openOpacityDialog() {
 
 // 打开保存Mask对话框
 async function openSaveMaskDialog() {
-  if (!sessionId.value) {
-    ElMessage.error("请先加载APR视图");
-    return;
-  }
-
-  try {
-    if (window.nativeBridge?.dialog?.open) {
-      await window.nativeBridge.dialog.open("savemask", {
-        sessionId: sessionId.value,
-      });
-    }
-  } catch (error: any) {
-    console.error("[openSaveMaskDialog] Error:", error);
-    ElMessage.error(`打开对话框失败: ${error.message}`);
-  }
+  // Legacy entrypoint: keep for compatibility, but do NOT open BrowserWindow.
+  await toggleSaveMaskPanel();
 }
 
 // 打开截图对话框
@@ -1562,7 +1617,7 @@ onUnmounted(() => {
             <ElTableColumn prop="max" label="最大值" />
           </ElTable>
           <div class="btn-row">
-            <ElButton size="small" type="primary" @click="openRigMarkDialog"
+            <ElButton size="small" type="primary" @click="toggleThresholdPanel"
               >添加</ElButton
             >
             <ElButton
@@ -1574,7 +1629,7 @@ onUnmounted(() => {
             <ElButton size="small" type="primary" @click="openColorPicker2D"
               >颜色</ElButton
             >
-            <ElButton size="small" type="primary" @click="openSaveMaskDialog"
+            <ElButton size="small" type="primary" @click="toggleSaveMaskPanel"
               >保存</ElButton
             >
             <ElButton size="small" type="primary" @click="loadMask"
@@ -1583,6 +1638,65 @@ onUnmounted(() => {
             <ElButton size="small" type="primary" @click="openStatsDialog"
               >信息</ElButton
             >
+          </div>
+
+          <!-- 添加 2D 掩膜（阈值分割：内联面板） -->
+          <div v-if="showThresholdPanel" class="roi-inline-panel">
+            <div class="roi-inline-row">
+              <canvas
+                ref="histogramCanvas"
+                width="320"
+                height="140"
+                class="roi-histogram-canvas"
+              ></canvas>
+            </div>
+            <div class="roi-inline-row">
+              <span class="roi-inline-label">最小值:</span>
+              <ElSlider
+                v-model="rigMarkMin"
+                :min="histogramMinValue"
+                :max="histogramMaxValue"
+                :step="1"
+                show-input
+                size="small"
+                style="flex: 1"
+              />
+            </div>
+            <div class="roi-inline-row">
+              <span class="roi-inline-label">最大值:</span>
+              <ElSlider
+                v-model="rigMarkMax"
+                :min="histogramMinValue"
+                :max="histogramMaxValue"
+                :step="1"
+                show-input
+                size="small"
+                style="flex: 1"
+              />
+            </div>
+            <div class="roi-inline-row" style="align-items: center">
+              <span class="roi-inline-label">颜色:</span>
+              <ElColorPicker v-model="rigMarkColor" />
+              <ElButton size="small" type="primary" @click="confirmThresholdMask">
+                确认
+              </ElButton>
+            </div>
+          </div>
+
+          <!-- 保存 2D 掩膜（内联面板） -->
+          <div v-if="showSaveMaskPanel" class="roi-inline-panel">
+            <div class="roi-inline-row" style="align-items: center">
+              <span class="roi-inline-label">名称:</span>
+              <ElInput
+                v-model="maskSaveName"
+                placeholder="mask名称"
+                size="small"
+                style="flex: 1"
+              />
+              <ElButton size="small" type="primary" @click="confirmSaveMaskPanel">
+                确认保存
+              </ElButton>
+            </div>
           </div>
         </div>
         <!-- 2D 掩膜操作区域 -->
@@ -1940,5 +2054,38 @@ onUnmounted(() => {
 
 :deep(.el-overlay) {
   z-index: 999998 !important;
+}
+
+.roi-inline-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(246, 250, 255, 0.98);
+  box-shadow: 0 2px 8px rgba(0, 120, 160, 0.08);
+  border: 1px solid rgba(180, 210, 240, 0.32);
+}
+
+.roi-inline-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.roi-inline-row:last-child {
+  margin-bottom: 0;
+}
+
+.roi-inline-label {
+  min-width: 56px;
+  color: #1a355a;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.roi-histogram-canvas {
+  width: 100%;
+  border-radius: 8px;
 }
 </style>
